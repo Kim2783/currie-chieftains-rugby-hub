@@ -23,9 +23,13 @@ export function subscribeToClips(onDataChanged, onError) {
     COLLECTIONS.forEach(colName => {
       onSnapshot(collection(db, colName), (snapshot) => {
         snapshot.docs.forEach(docSnap => {
-          combinedMap.set(docSnap.id, {
-            id: docSnap.id,
-            ...docSnap.data()
+          const data = docSnap.data();
+          // Use unique Firestore document ID as the primary key so no 2 documents ever collide!
+          const uniqueId = docSnap.id;
+          combinedMap.set(uniqueId, {
+            ...data,
+            id: uniqueId,
+            firestoreDocId: uniqueId
           });
         });
         const allClips = Array.from(combinedMap.values());

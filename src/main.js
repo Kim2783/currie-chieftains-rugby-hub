@@ -83,6 +83,24 @@ const challengeOutput = document.getElementById('challengeOutput');
 // Defensive Sanitization Helper for 100% Robust Clip Rendering
 function sanitizeClip(clip) {
   if (!clip) return null;
+
+  const id = clip.firestoreDocId || clip.id || 'clip-' + Math.random().toString(36).substring(2, 9);
+  const title = clip.title || 'Currie Chieftains Pitch Video';
+  const description = clip.description || 'Pitch-side rugby video shared to Malleny Park vault.';
+  const url = clip.url || clip.videoUrl || clip.downloadURL || clip.link || '';
+  const thumbnail = clip.thumbnail || clip.thumbUrl || 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80';
+
+  let platform = clip.platform;
+  if (!platform) {
+    if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
+      platform = url.includes('/shorts/') ? 'youtube-shorts' : 'youtube';
+    } else if (url && url.includes('instagram.com')) {
+      platform = 'instagram';
+    } else {
+      platform = 'uploaded';
+    }
+  }
+
   const ageGroups = Array.isArray(clip.ageGroups) && clip.ageGroups.length > 0 ? clip.ageGroups :
                     clip.ageGroup ? [clip.ageGroup] : ['u14'];
   const ageCategories = Array.isArray(clip.ageCategories) && clip.ageCategories.length > 0 ? clip.ageCategories :
@@ -92,26 +110,15 @@ function sanitizeClip(clip) {
   const coachingPoints = Array.isArray(clip.coachingPoints) ? clip.coachingPoints : [];
   const comments = Array.isArray(clip.comments) ? clip.comments : [];
 
-  let platform = clip.platform;
-  if (!platform) {
-    if (clip.url && (clip.url.includes('youtube.com') || clip.url.includes('youtu.be'))) {
-      platform = clip.url.includes('/shorts/') ? 'youtube-shorts' : 'youtube';
-    } else if (clip.url && clip.url.includes('instagram.com')) {
-      platform = 'instagram';
-    } else {
-      platform = 'uploaded';
-    }
-  }
-
   return {
-    id: clip.id || 'clip-' + Date.now(),
-    title: clip.title || 'Rugby Skill Video',
-    description: clip.description || 'Shared Currie Chieftains rugby video.',
+    id,
+    title,
+    description,
     platform,
-    url: clip.url || '',
+    url,
     embedId: clip.embedId || '',
     isShort: !!clip.isShort,
-    thumbnail: clip.thumbnail || 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80',
+    thumbnail,
     category: clip.category || 'passing',
     level: clip.level || 'intermediate',
     ageGroups,
@@ -121,7 +128,7 @@ function sanitizeClip(clip) {
     author: clip.author || 'Currie Contributor',
     authorRole: clip.authorRole || 'Coach / Player',
     upvotes: typeof clip.upvotes === 'number' ? clip.upvotes : 1,
-    duration: clip.duration || 'Video',
+    duration: clip.duration || 'Pitch Video 📱',
     coachingPoints,
     comments,
     dateAdded: clip.dateAdded || new Date().toISOString().split('T')[0]
@@ -160,7 +167,7 @@ async function init() {
         }
       });
 
-      // Combine Cloud clips with local clips without duplication
+      // Combine Cloud clips with local clips using Map indexed by unique document ID
       const combinedMap = new Map();
       sanitizedCloud.forEach(c => combinedMap.set(c.id, c));
       localClips.forEach(lc => {
