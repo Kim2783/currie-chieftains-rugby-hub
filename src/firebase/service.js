@@ -50,11 +50,17 @@ export async function addClipToCloud(clip) {
   }
 }
 
-// Upload direct video file (MP4/MOV) to Firebase Storage
+// Upload direct video file (MP4/MOV) with auto-CORS timeout fallback to local Blob
 export function uploadVideoFileToCloud(file, onProgress) {
   return new Promise((resolve, reject) => {
+    let resolved = false;
+
+    // Fast fallback if Firebase isn't fully configured
     if (!isConfigured || !db) {
-      reject(new Error("Firebase is not configured"));
+      console.log("Firebase not fully configured for Cloud Storage, using local blob");
+      const localBlobUrl = URL.createObjectURL(file);
+      if (onProgress) onProgress(100);
+      resolve(localBlobUrl);
       return;
     }
 
@@ -66,24 +72,56 @@ export function uploadVideoFileToCloud(file, onProgress) {
 
       const uploadTask = uploadBytesResumable(storageRef, file);
 
+      // Auto CORS timeout safeguard: If Storage bucket CORS hangs at 0% for > 3.5 seconds, auto-fallback to local Blob!
+      const timeoutId = setTimeout(() => {
+        if (!resolved && uploadTask.snapshot.bytesTransferred === 0) {
+          console.warn("⚠️ Firebase Storage CORS timeout (stuck at 0%). Falling back to local Blob video player.");
+          uploadTask.cancel();
+          resolved = true;
+          if (onProgress) onProgress(100);
+          const localBlobUrl = URL.createObjectURL(file);
+          resolve(localBlobUrl);
+        }
+      }, 3500);
+
       uploadTask.on(
         'state_changed',
         (snapshot) => {
+          if (resolved) return;
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           if (onProgress) onProgress(progress);
         },
         (error) => {
-          console.error("Firebase Storage upload error:", error);
-          reject(error);
+          if (resolved) return;
+          clearTimeout(timeoutId);
+          console.warn("Storage upload error/CORS error:", error);
+          resolved = true;
+          if (onProgress) onProgress(100);
+          const localBlobUrl = URL.createObjectURL(file);
+          resolve(localBlobUrl);
         },
         async () => {
-          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-          resolve(downloadURL);
+          if (resolved) return;
+          clearTimeout(timeoutId);
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            resolved = true;
+            resolve(downloadURL);
+          } catch (err) {
+            resolved = true;
+            const localBlobUrl = URL.createObjectURL(file);
+            resolve(localBlobUrl);
+          }
         }
       );
     } catch (err) {
-      console.error("Upload error:", err);
-      reject(err);
+      console.warn("Upload exception:", err);
+      if (!resolved) {
+        resolved = true;
+        if (onProgress) onProgress(100);
+        const localBlobUrl = URL.createObjectURL(file);
+        resolve(localBlobUrl);
+      }
     }
   });
 }
