@@ -11,24 +11,30 @@ import {
   getDocs
 } from 'firebase/firestore';
 
-const COLLECTION_NAME = 'clips';
+const COLLECTIONS = ['clips', 'videos', 'rugby_clips', 'currie_clips'];
 
-// Subscribe to real-time Firestore updates for ALL clips
+// Subscribe to real-time Firestore updates across all possible collection names
 export function subscribeToClips(onDataChanged, onError) {
   if (!isConfigured || !db) return null;
 
   try {
-    const colRef = collection(db, COLLECTION_NAME);
-    return onSnapshot(colRef, (snapshot) => {
-      const clips = snapshot.docs.map(docSnap => ({
-        id: docSnap.id,
-        ...docSnap.data()
-      }));
-      console.log(`🔥 Received ${clips.length} live clips from Cloud Firestore!`);
-      onDataChanged(clips);
-    }, (error) => {
-      console.error("Firestore onSnapshot error:", error);
-      if (onError) onError(error);
+    const combinedMap = new Map();
+
+    COLLECTIONS.forEach(colName => {
+      onSnapshot(collection(db, colName), (snapshot) => {
+        snapshot.docs.forEach(docSnap => {
+          combinedMap.set(docSnap.id, {
+            id: docSnap.id,
+            ...docSnap.data()
+          });
+        });
+        const allClips = Array.from(combinedMap.values());
+        console.log(`🔥 Real-time sync updated: ${allClips.length} total clips from Firestore!`);
+        onDataChanged(allClips);
+      }, (error) => {
+        console.warn(`Firestore onSnapshot warning for '${colName}':`, error);
+        if (onError) onError(error);
+      });
     });
   } catch (err) {
     console.error("Subscribe to clips error:", err);
@@ -36,11 +42,11 @@ export function subscribeToClips(onDataChanged, onError) {
   }
 }
 
-// Add a new clip to Cloud Firestore
+// Add a new clip to Cloud Firestore (written to primary 'clips' collection)
 export async function addClipToCloud(clip) {
   if (!isConfigured || !db) return false;
   try {
-    const docRef = doc(db, COLLECTION_NAME, clip.id);
+    const docRef = doc(db, 'clips', clip.id);
     await setDoc(docRef, clip);
     console.log(`🔥 Clip ${clip.id} successfully written to Firestore!`);
     return true;
@@ -111,10 +117,12 @@ export function uploadVideoFileToCloud(file, onProgress) {
 export async function upvoteClipInCloud(clipId) {
   if (!isConfigured || !db) return false;
   try {
-    const docRef = doc(db, COLLECTION_NAME, clipId);
-    await updateDoc(docRef, {
-      upvotes: increment(1)
-    });
+    for (const colName of COLLECTIONS) {
+      try {
+        const docRef = doc(db, colName, clipId);
+        await updateDoc(docRef, { upvotes: increment(1) });
+      } catch (e) {}
+    }
     return true;
   } catch (err) {
     console.error("Error upvoting in Firestore:", err);
@@ -126,10 +134,12 @@ export async function upvoteClipInCloud(clipId) {
 export async function addCommentToCloud(clipId, commentObj) {
   if (!isConfigured || !db) return false;
   try {
-    const docRef = doc(db, COLLECTION_NAME, clipId);
-    await updateDoc(docRef, {
-      comments: arrayUnion(commentObj)
-    });
+    for (const colName of COLLECTIONS) {
+      try {
+        const docRef = doc(db, colName, clipId);
+        await updateDoc(docRef, { comments: arrayUnion(commentObj) });
+      } catch (e) {}
+    }
     return true;
   } catch (err) {
     console.error("Error adding comment to Firestore:", err);
@@ -141,11 +151,11 @@ export async function addCommentToCloud(clipId, commentObj) {
 export async function seedInitialClipsIfEmpty(initialClips) {
   if (!isConfigured || !db) return;
   try {
-    const snap = await getDocs(collection(db, COLLECTION_NAME));
+    const snap = await getDocs(collection(db, 'clips'));
     if (snap.empty) {
       console.log("Seeding initial Currie Chieftains clips to Cloud Firestore...");
       for (const clip of initialClips) {
-        await setDoc(doc(db, COLLECTION_NAME, clip.id), clip);
+        await setDoc(doc(db, 'clips', clip.id), clip);
       }
       console.log("🔥 Initial clips seeded to Firestore!");
     }
