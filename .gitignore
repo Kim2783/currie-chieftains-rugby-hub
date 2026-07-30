@@ -1,0 +1,11 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output
+dist
+.firebase
+
+# Logs & temp
+*.log
+.DS_Store
