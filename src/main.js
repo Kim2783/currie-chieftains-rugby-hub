@@ -4,7 +4,7 @@ import { subscribeToClips, addClipToCloud, upvoteClipInCloud, addCommentToCloud,
 
 // Application State
 let state = {
-  clips: [],
+  clips: [...INITIAL_CLIPS],
   savedClipIds: [],
   activeCategory: 'all',
   activePosition: 'all',
@@ -90,16 +90,23 @@ async function init() {
   renderPlaylists();
   setupEventListeners();
 
+  // Instant initial render so screen NEVER shows 0 clips!
+  updateStats();
+  renderClips();
+
   if (isConfigured) {
     console.log("🔥 Connecting to Firebase Firestore Real-Time Stream...");
     updateCloudStatusBadge(true);
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      // Retain local uploaded clips
-      const localClips = getStoredLocalClips();
-      const localOnly = localClips.filter(lc => !cloudClips.some(cc => cc.id === lc.id));
-      state.clips = [...localOnly, ...cloudClips];
+      if (!cloudClips || cloudClips.length === 0) {
+        state.clips = [...INITIAL_CLIPS];
+      } else {
+        const localClips = getStoredLocalClips();
+        const localOnly = localClips.filter(lc => !cloudClips.some(cc => cc.id === lc.id));
+        state.clips = [...localOnly, ...cloudClips];
+      }
       updateStats();
       renderClips();
       if (state.currentModalClipId) {
@@ -109,6 +116,11 @@ async function init() {
           renderModalComments(activeClip);
         }
       }
+    }, (err) => {
+      console.warn("Firestore subscription fallback:", err);
+      loadLocalStorageClips();
+      updateStats();
+      renderClips();
     });
   } else {
     updateCloudStatusBadge(false);
