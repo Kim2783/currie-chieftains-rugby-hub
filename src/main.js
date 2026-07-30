@@ -90,7 +90,7 @@ async function init() {
   renderPlaylists();
   setupEventListeners();
 
-  // Instant initial render so screen NEVER shows 0 clips!
+  // Instant initial render
   updateStats();
   renderClips();
 
@@ -100,15 +100,28 @@ async function init() {
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      if (!cloudClips || cloudClips.length === 0) {
-        state.clips = [...INITIAL_CLIPS];
-      } else {
-        const localClips = getStoredLocalClips();
-        const localOnly = localClips.filter(lc => !cloudClips.some(cc => cc.id === lc.id));
-        state.clips = [...localOnly, ...cloudClips];
-      }
+      // 1. Auto-sync clips stored locally on this device to Cloud Firestore
+      const localClips = getStoredLocalClips();
+      localClips.forEach(lc => {
+        if (!cloudClips.some(cc => cc.id === lc.id)) {
+          console.log("🔥 Auto-syncing local clip to Cloud Firestore:", lc.title);
+          addClipToCloud(lc);
+        }
+      });
+
+      // 2. Combine Cloud clips with any local clips
+      const combinedMap = new Map();
+      cloudClips.forEach(c => combinedMap.set(c.id, c));
+      localClips.forEach(lc => {
+        if (!combinedMap.has(lc.id)) {
+          combinedMap.set(lc.id, lc);
+        }
+      });
+
+      state.clips = Array.from(combinedMap.values());
       updateStats();
       renderClips();
+
       if (state.currentModalClipId) {
         const activeClip = state.clips.find(c => c.id === state.currentModalClipId);
         if (activeClip) {
@@ -156,7 +169,11 @@ function loadLocalStorageClips() {
   try {
     const storedClips = localStorage.getItem(STORAGE_KEY_CLIPS);
     if (storedClips) {
-      state.clips = JSON.parse(storedClips);
+      const parsed = JSON.parse(storedClips);
+      const map = new Map();
+      INITIAL_CLIPS.forEach(c => map.set(c.id, c));
+      parsed.forEach(c => map.set(c.id, c));
+      state.clips = Array.from(map.values());
     } else {
       state.clips = [...INITIAL_CLIPS];
       saveClipsToStorage();
@@ -180,13 +197,8 @@ function loadSavedIds() {
 
 function saveClipsToStorage() {
   try {
-    const serializable = state.clips.map(c => {
-      if (c.url && c.url.startsWith('blob:')) {
-        return { ...c, url: 'local_video_session' };
-      }
-      return c;
-    });
-    localStorage.setItem(STORAGE_KEY_CLIPS, JSON.stringify(serializable));
+    const userClips = state.clips.filter(c => !c.url.startsWith('blob:'));
+    localStorage.setItem(STORAGE_KEY_CLIPS, JSON.stringify(userClips));
   } catch (e) {
     console.warn("Storage save limit reached:", e);
   }
