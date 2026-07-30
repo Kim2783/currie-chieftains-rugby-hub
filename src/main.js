@@ -168,7 +168,6 @@ function loadSavedIds() {
 
 function saveClipsToStorage() {
   try {
-    // Only save serializable clips to storage
     const serializable = state.clips.map(c => {
       if (c.url && c.url.startsWith('blob:')) {
         return { ...c, url: 'local_video_session' };
@@ -453,16 +452,24 @@ function renderVideoEmbed(clip) {
       </div>
     `;
   } else if (clip.platform === 'uploaded') {
+    // Mobile Safari & Chrome resilient HTML5 Video player setup
     videoEmbedWrapper.innerHTML = `
-      <video controls autoplay playsinline style="width: 100%; height: 100%; object-fit: contain;">
-        <source src="${clip.url}">
+      <video controls playsinline webkit-playsinline preload="metadata" style="width: 100%; height: 100%; object-fit: contain;" src="${clip.url}">
         Your browser does not support HTML5 video playback.
       </video>
     `;
+    const v = videoEmbedWrapper.querySelector('video');
+    if (v) {
+      v.play().catch(e => console.log("Mobile play pause:", e));
+    }
   } else {
     videoEmbedWrapper.innerHTML = `
-      <video controls autoplay playsinline src="${clip.url}"></video>
+      <video controls playsinline webkit-playsinline style="width: 100%; height: 100%; object-fit: contain;" src="${clip.url}"></video>
     `;
+    const v = videoEmbedWrapper.querySelector('video');
+    if (v) {
+      v.play().catch(e => console.log("Mobile play pause:", e));
+    }
   }
 }
 
@@ -803,7 +810,7 @@ function setupEventListeners() {
       dateAdded: new Date().toISOString().split('T')[0]
     };
 
-    // 1. AUTO-RESET ALL ACTIVE FILTERS so the new clip is 100% GUARANTEED to appear at top of grid!
+    // 1. AUTO-RESET ALL ACTIVE FILTERS
     state.activeCategory = 'all';
     state.activePosition = 'all';
     state.activeAgeGroup = 'all';
