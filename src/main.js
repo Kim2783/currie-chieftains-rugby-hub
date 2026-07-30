@@ -452,15 +452,21 @@ function renderVideoEmbed(clip) {
       </div>
     `;
   } else if (clip.platform === 'uploaded') {
-    // Mobile Safari & Chrome resilient HTML5 Video player setup
     videoEmbedWrapper.innerHTML = `
-      <video controls playsinline webkit-playsinline preload="metadata" style="width: 100%; height: 100%; object-fit: contain;" src="${clip.url}">
-        Your browser does not support HTML5 video playback.
-      </video>
+      <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; position: relative;">
+        <video controls playsinline webkit-playsinline preload="auto" style="width: 100%; height: 100%; max-height: 480px; object-fit: contain;" src="${clip.url}">
+          Your browser does not support HTML5 video playback.
+        </video>
+        <div style="position: absolute; bottom: 0.6rem; right: 0.6rem; z-index: 5;">
+          <a href="${clip.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; background: rgba(0,0,0,0.85); border-color: var(--color-gold); color: #fff;">
+            ↗ Open Video Link
+          </a>
+        </div>
+      </div>
     `;
     const v = videoEmbedWrapper.querySelector('video');
     if (v) {
-      v.play().catch(e => console.log("Mobile play pause:", e));
+      v.play().catch(e => console.log("Play pause:", e));
     }
   } else {
     videoEmbedWrapper.innerHTML = `
@@ -468,7 +474,7 @@ function renderVideoEmbed(clip) {
     `;
     const v = videoEmbedWrapper.querySelector('video');
     if (v) {
-      v.play().catch(e => console.log("Mobile play pause:", e));
+      v.play().catch(e => console.log("Play pause:", e));
     }
   }
 }
