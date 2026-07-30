@@ -419,6 +419,47 @@ body {
   background: rgba(245, 158, 11, 0.12);
 }
 
+/* Multi-Select Checkboxes Grid for Age Levels in Form */
+.age-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 0.5rem;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  max-height: 180px;
+  overflow-y: auto;
+}
+
+.age-checkbox-tile {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+.age-checkbox-tile:hover {
+  border-color: var(--color-gold);
+  background: rgba(245, 158, 11, 0.1);
+}
+
+.age-checkbox-tile input[type="checkbox"] {
+  accent-color: var(--color-gold);
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
 /* Media Cards Grid */
 .clips-grid-header {
   display: flex;
@@ -566,7 +607,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 0.5rem;
+  gap: 0.4rem;
   flex-wrap: wrap;
 }
 

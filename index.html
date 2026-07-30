@@ -79,11 +79,11 @@
       <div class="search-row">
         <div class="search-box">
           <span class="search-icon">🔍</span>
-          <input type="text" id="searchInput" class="search-input" placeholder="Search skills, age groups (e.g. 'P4', 'U14', 'Adult', 'jackal', 'scrum')..." autocomplete="off">
+          <input type="text" id="searchInput" class="search-input" placeholder="Search skills, age groups (e.g. 'P4', 'P5', 'U14', '1st XV', 'scrum')..." autocomplete="off">
         </div>
 
         <select id="ageGroupSelect" class="select-box">
-          <option value="all">🏴󠁧󠁢󠁳󠁣󠁴󠁿 All Squad Levels</option>
+          <option value="all">🏴󠁧󠁢󠁳󠁣󠁴󠁿 All Specific Age Levels</option>
           <!-- Options populated dynamically -->
         </select>
 
@@ -118,7 +118,7 @@
           <button class="pill-filter active" data-squad="all">All Sections</button>
           <button class="pill-filter" data-squad="minis">🏉 Minis (P1 - P7)</button>
           <button class="pill-filter" data-squad="youth">🔥 Youth (U13 - U18)</button>
-          <button class="pill-filter" data-squad="adults">👑 Adult Rugby (Seniors / Vets)</button>
+          <button class="pill-filter" data-squad="adults">👑 Adult Rugby (Seniors & Vets)</button>
         </div>
 
         <button class="btn btn-ghost" id="resetFiltersBtn" style="font-size: 0.8rem;">
@@ -187,10 +187,8 @@
 
         <!-- Clip Metadata Row -->
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-            <span class="badge-level" id="modalAgeBadge">U14 Youth</span>
-            <span class="badge-level" id="modalLevelBadge">Intermediate</span>
-            <span style="font-size: 0.85rem; color: var(--text-muted); margin-left: 0.5rem;" id="modalAuthorRole">Coach Mark</span>
+          <div style="display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;" id="modalAgeBadgesWrapper">
+            <!-- Age badges rendered dynamically -->
           </div>
 
           <div style="display: flex; gap: 0.75rem;">
@@ -234,7 +232,7 @@
 
   <!-- Share / Add Clip Modal -->
   <div class="modal-overlay" id="addModal">
-    <div class="modal-content" style="max-width: 650px;">
+    <div class="modal-content" style="max-width: 700px;">
       <div class="modal-header">
         <h2>+ Share New Rugby Clip or Video</h2>
         <button class="close-modal-btn" id="closeAddModal">&times;</button>
@@ -248,36 +246,18 @@
 
         <div class="form-group">
           <label for="clipTitleInput">Title / Skill Focus</label>
-          <input type="text" id="clipTitleInput" class="form-control" placeholder="e.g. Chieftains P5 Mini Lineout Throw & Catch" required>
+          <input type="text" id="clipTitleInput" class="form-control" placeholder="e.g. Chieftains P4/P5 Tackle Entry Drill" required>
+        </div>
+
+        <!-- Multi-Select Age Checkboxes Grid -->
+        <div class="form-group" style="grid-column: 1 / -1;">
+          <label style="font-weight: 700; color: var(--color-gold);">Scottish Age / Squad Levels (Multi-select all that apply):</label>
+          <div class="age-checkbox-grid" id="clipAgeCheckboxes">
+            <!-- Rendered dynamically -->
+          </div>
         </div>
 
         <div class="form-row">
-          <div class="form-group">
-            <label for="clipAgeGroupInput">Scottish Age / Squad Level</label>
-            <select id="clipAgeGroupInput" class="form-control" required>
-              <optgroup label="Minis (P1 - P7)">
-                <option value="p1-p3">P1 - P3 (Micro Rugby)</option>
-                <option value="p4">P4 (Intro to Contact)</option>
-                <option value="p5">P5 (Scrum & Lineout Intro)</option>
-                <option value="p6">P6 Mini Rugby</option>
-                <option value="p7">P7 Mini Rugby</option>
-              </optgroup>
-              <optgroup label="Youth (U13 - U18)">
-                <option value="u13">Under 13 (U13)</option>
-                <option value="u14" selected>Under 14 (U14)</option>
-                <option value="u15">Under 15 (U15)</option>
-                <option value="u16">Under 16 (U16)</option>
-                <option value="u18">Under 18 / Colts (U18)</option>
-              </optgroup>
-              <optgroup label="Adult Rugby (Seniors & Vets)">
-                <option value="adult-1st">1st XV Premiership</option>
-                <option value="adult-2nd">2nd XV Chieftains</option>
-                <option value="adult-womens">Women's Squad</option>
-                <option value="adult-vets">Vets / Over-35s</option>
-              </optgroup>
-            </select>
-          </div>
-
           <div class="form-group">
             <label for="clipCategoryInput">Skill Category</label>
             <select id="clipCategoryInput" class="form-control" required>
@@ -291,13 +271,6 @@
               <option value="tactics">Team Tactics & Strike Plays</option>
               <option value="fitness">Fitness & Conditioning</option>
             </select>
-          </div>
-        </div>
-
-        <div class="form-row">
-          <div class="form-group">
-            <label for="clipAuthorInput">Your Name & Role</label>
-            <input type="text" id="clipAuthorInput" class="form-control" placeholder="e.g. Coach Jamie (Minis / Youth / Adult Coach)" required>
           </div>
 
           <div class="form-group">
@@ -320,9 +293,16 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label for="clipTagsInput">Custom Tags (comma separated)</label>
-          <input type="text" id="clipTagsInput" class="form-control" placeholder="#minis-p5, #spiral-pass, #malleny">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="clipAuthorInput">Your Name & Role</label>
+            <input type="text" id="clipAuthorInput" class="form-control" placeholder="e.g. Coach Jamie (Minis / Youth / Adult Coach)" required>
+          </div>
+
+          <div class="form-group">
+            <label for="clipTagsInput">Custom Tags (comma separated)</label>
+            <input type="text" id="clipTagsInput" class="form-control" placeholder="#p4, #p5, #spiral-pass, #malleny">
+          </div>
         </div>
 
         <div class="form-group">

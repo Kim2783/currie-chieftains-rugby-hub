@@ -41,7 +41,7 @@ const playerModal = document.getElementById('playerModal');
 const closePlayerModal = document.getElementById('closePlayerModal');
 const videoEmbedWrapper = document.getElementById('videoEmbedWrapper');
 const modalClipTitle = document.getElementById('modalClipTitle');
-const modalAgeBadge = document.getElementById('modalAgeBadge');
+const modalAgeBadgesWrapper = document.getElementById('modalAgeBadgesWrapper');
 const modalLevelBadge = document.getElementById('modalLevelBadge');
 const modalAuthorRole = document.getElementById('modalAuthorRole');
 const modalDescription = document.getElementById('modalDescription');
@@ -58,6 +58,7 @@ const openAddModalBtn = document.getElementById('openAddModalBtn');
 const closeAddModal = document.getElementById('closeAddModal');
 const cancelAddBtn = document.getElementById('cancelAddBtn');
 const addClipForm = document.getElementById('addClipForm');
+const clipAgeCheckboxes = document.getElementById('clipAgeCheckboxes');
 
 // Playlists & Challenge Elements
 const playlistCards = document.getElementById('playlistCards');
@@ -72,6 +73,7 @@ async function init() {
   renderAgeGroupOptions();
   renderPositionOptions();
   renderCategoryTabs();
+  renderFormAgeCheckboxes();
   renderPlaylists();
   setupEventListeners();
 
@@ -156,9 +158,8 @@ function updateStats() {
 }
 
 function renderAgeGroupOptions() {
-  ageGroupSelect.innerHTML = SCOTTISH_AGE_GROUPS.map(ag => 
-    `<option value="${ag.id}">${ag.name}</option>`
-  ).join('');
+  ageGroupSelect.innerHTML = `<option value="all">🏴󠁧󠁢󠁳󠁣󠁴󠁿 All Specific Age Levels</option>` +
+    SCOTTISH_AGE_GROUPS.map(ag => `<option value="${ag.id}">${ag.name}</option>`).join('');
 }
 
 function renderPositionOptions() {
@@ -175,8 +176,21 @@ function renderCategoryTabs() {
   `).join('');
 }
 
+function renderFormAgeCheckboxes() {
+  if (!clipAgeCheckboxes) return;
+  clipAgeCheckboxes.innerHTML = SCOTTISH_AGE_GROUPS.map(ag => `
+    <label class="age-checkbox-tile">
+      <input type="checkbox" name="clipAgeCheck" value="${ag.id}" ${ag.id === 'u14' ? 'checked' : ''}>
+      <span>${ag.name}</span>
+    </label>
+  `).join('');
+}
+
 function getFilteredClips() {
   return state.clips.filter(clip => {
+    const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+    const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
+
     // Search query
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase();
@@ -184,7 +198,7 @@ function getFilteredClips() {
       const matchDesc = clip.description.toLowerCase().includes(q);
       const matchAuthor = clip.author.toLowerCase().includes(q);
       const matchTags = clip.tags.some(t => t.toLowerCase().includes(q));
-      const matchAge = clip.ageGroup ? clip.ageGroup.toLowerCase().includes(q) : false;
+      const matchAge = clipAges.some(a => a.toLowerCase().includes(q) || getAgeGroupLabel(a).toLowerCase().includes(q));
       if (!matchTitle && !matchDesc && !matchAuthor && !matchTags && !matchAge) return false;
     }
 
@@ -199,20 +213,16 @@ function getFilteredClips() {
       return false;
     }
 
-    // Squad Section pill filter
+    // Squad Section pill filter (Minis, Youth, Adult Rugby)
     if (state.activeSquadSection !== 'all') {
-      const clipCat = clip.ageCategory || getAgeCategoryFromId(clip.ageGroup);
-      if (clipCat !== state.activeSquadSection) return false;
+      const hasSquadCategory = clipCats.includes(state.activeSquadSection) ||
+        clipAges.some(a => getAgeCategoryFromId(a) === state.activeSquadSection);
+      if (!hasSquadCategory) return false;
     }
 
-    // Age Group Dropdown Filter
+    // Specific Age Group Dropdown Filter
     if (state.activeAgeGroup !== 'all') {
-      if (state.activeAgeGroup === 'minis-all' && (clip.ageCategory !== 'minis' && getAgeCategoryFromId(clip.ageGroup) !== 'minis')) return false;
-      if (state.activeAgeGroup === 'youth-all' && (clip.ageCategory !== 'youth' && getAgeCategoryFromId(clip.ageGroup) !== 'youth')) return false;
-      if (state.activeAgeGroup === 'seniors-all' && (clip.ageCategory !== 'seniors' && getAgeCategoryFromId(clip.ageGroup) !== 'seniors')) return false;
-      if (!['minis-all', 'youth-all', 'seniors-all'].includes(state.activeAgeGroup)) {
-        if (clip.ageGroup !== state.activeAgeGroup) return false;
-      }
+      if (!clipAges.includes(state.activeAgeGroup)) return false;
     }
 
     // Category filter
@@ -220,7 +230,7 @@ function getFilteredClips() {
       return false;
     }
 
-    // Position filter
+    // Position filter (supports "none" for no position tagged)
     if (state.activePosition !== 'all') {
       if (!clip.positions.includes(state.activePosition)) return false;
     }
@@ -247,7 +257,7 @@ function getAgeCategoryFromId(ageId) {
   if (!ageId) return 'youth';
   if (ageId.startsWith('p') || ageId === 'minis') return 'minis';
   if (ageId.startsWith('u') || ageId === 'youth') return 'youth';
-  if (ageId.includes('senior')) return 'seniors';
+  if (ageId.includes('adult') || ageId.includes('senior')) return 'adults';
   return 'youth';
 }
 
@@ -266,7 +276,7 @@ function renderClips() {
         <div style="font-size: 3rem; margin-bottom: 1rem;">🏉</div>
         <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Rugby Clips Found</h3>
         <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
-          No skill videos match your active age group or filter selection. Try adjusting your search term.
+          No skill videos match your active filter selection. Try adjusting your search term or squad level.
         </p>
         <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset All Filters</button>
       </div>
@@ -280,9 +290,12 @@ function renderClips() {
                           clip.platform === 'youtube' ? 'YouTube ▶' : 'Instagram 📸';
     const platformClass = `platform-${clip.platform}`;
     const levelClass = `level-${clip.level}`;
-    const ageCategory = clip.ageCategory || getAgeCategoryFromId(clip.ageGroup);
-    const ageBadgeClass = `badge-age-${ageCategory}`;
-    const ageLabel = getAgeGroupLabel(clip.ageGroup || 'u14');
+    const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+
+    const ageBadgesHtml = clipAges.slice(0, 3).map(agId => {
+      const ageCat = getAgeCategoryFromId(agId);
+      return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
+    }).join(' ');
 
     return `
       <article class="clip-card" data-id="${clip.id}">
@@ -299,8 +312,7 @@ function renderClips() {
 
         <div class="card-body">
           <div class="card-meta">
-            <span class="badge-level ${ageBadgeClass}">${ageLabel}</span>
-            <span class="badge-level ${levelClass}">${clip.level}</span>
+            ${ageBadgesHtml}
             <span class="card-category">${getCategoryName(clip.category)}</span>
           </div>
 
@@ -351,12 +363,12 @@ window.openClipModal = function(clipId) {
   state.currentModalClipId = clipId;
   modalClipTitle.textContent = clip.title;
   
-  const ageCat = clip.ageCategory || getAgeCategoryFromId(clip.ageGroup);
-  modalAgeBadge.textContent = getAgeGroupLabel(clip.ageGroup || 'u14');
-  modalAgeBadge.className = `badge-level badge-age-${ageCat}`;
+  const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+  modalAgeBadgesWrapper.innerHTML = clipAges.map(agId => {
+    const ageCat = getAgeCategoryFromId(agId);
+    return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
+  }).join(' ') + `<span class="badge-level level-${clip.level}">${clip.level.toUpperCase()}</span>`;
 
-  modalLevelBadge.textContent = clip.level.toUpperCase();
-  modalLevelBadge.className = `badge-level level-${clip.level}`;
   modalAuthorRole.textContent = `${clip.author} (${clip.authorRole || 'Contributor'})`;
   modalDescription.textContent = clip.description;
   modalUpvotesCount.textContent = clip.upvotes || 0;
@@ -627,7 +639,12 @@ function setupEventListeners() {
 
     const rawUrl = document.getElementById('clipUrlInput').value.trim();
     const title = document.getElementById('clipTitleInput').value.trim();
-    const ageGroup = document.getElementById('clipAgeGroupInput').value;
+    
+    // Collect multi-selected age checkboxes
+    const checkedAgeBoxes = Array.from(document.querySelectorAll('input[name="clipAgeCheck"]:checked')).map(cb => cb.value);
+    const ageGroups = checkedAgeBoxes.length > 0 ? checkedAgeBoxes : ['u14'];
+    const ageCategories = Array.from(new Set(ageGroups.map(ag => getAgeCategoryFromId(ag))));
+
     const category = document.getElementById('clipCategoryInput').value;
     const author = document.getElementById('clipAuthorInput').value.trim();
     const position = document.getElementById('clipPositionInput').value;
@@ -636,13 +653,12 @@ function setupEventListeners() {
     const rawPoints = document.getElementById('clipPointsInput').value.trim();
 
     const parsed = parseMediaUrl(rawUrl);
-    const ageCategory = getAgeCategoryFromId(ageGroup);
 
     const tagsArr = rawTags ? rawTags.split(',').map(t => {
       let trimmed = t.trim();
       if (!trimmed.startsWith('#')) trimmed = '#' + trimmed;
       return trimmed;
-    }) : [`#${ageGroup}`, `#chieftains`];
+    }) : ageGroups.map(ag => `#${ag}`);
 
     const pointsArr = rawPoints ? rawPoints.split('\n').filter(p => p.trim()) : [];
 
@@ -656,9 +672,9 @@ function setupEventListeners() {
       isShort: parsed.isShort,
       thumbnail: parsed.thumbnail,
       category,
-      level: ageCategory === 'minis' ? 'beginner' : ageCategory === 'youth' ? 'intermediate' : 'advanced',
-      ageGroup,
-      ageCategory,
+      level: ageCategories.includes('minis') ? 'beginner' : ageCategories.includes('youth') ? 'intermediate' : 'advanced',
+      ageGroups,
+      ageCategories,
       positions: [position],
       tags: tagsArr,
       author,
@@ -680,6 +696,7 @@ function setupEventListeners() {
     }
 
     addClipForm.reset();
+    renderFormAgeCheckboxes();
     addModal.classList.remove('active');
     window.openClipModal(newClip.id);
   });
