@@ -109,7 +109,7 @@ async function init() {
         }
       });
 
-      // 2. Combine Cloud clips with any local clips
+      // 2. Combine Cloud clips with local clips
       const combinedMap = new Map();
       cloudClips.forEach(c => combinedMap.set(c.id, c));
       localClips.forEach(lc => {
@@ -119,6 +119,7 @@ async function init() {
       });
 
       state.clips = Array.from(combinedMap.values());
+      saveClipsToStorage();
       updateStats();
       renderClips();
 
@@ -197,8 +198,7 @@ function loadSavedIds() {
 
 function saveClipsToStorage() {
   try {
-    const userClips = state.clips.filter(c => !c.url.startsWith('blob:'));
-    localStorage.setItem(STORAGE_KEY_CLIPS, JSON.stringify(userClips));
+    localStorage.setItem(STORAGE_KEY_CLIPS, JSON.stringify(state.clips));
   } catch (e) {
     console.warn("Storage save limit reached:", e);
   }
@@ -777,21 +777,19 @@ function setupEventListeners() {
       uploadProgressContainer.style.display = 'block';
 
       try {
-        if (isConfigured) {
-          videoUrl = await uploadVideoFileToCloud(state.selectedVideoFile, (progress) => {
-            const p = Math.round(progress);
-            uploadProgressBar.style.width = p + '%';
-            uploadProgressText.textContent = `Processing ${p}%`;
-          });
-        } else {
-          videoUrl = URL.createObjectURL(state.selectedVideoFile);
-          uploadProgressBar.style.width = '100%';
-          uploadProgressText.textContent = 'Ready (Local Mode)';
-        }
+        videoUrl = await uploadVideoFileToCloud(state.selectedVideoFile, (progress) => {
+          const p = Math.round(progress);
+          uploadProgressBar.style.width = p + '%';
+          uploadProgressText.textContent = `Processing ${p}%`;
+        });
         platform = 'uploaded';
       } catch (err) {
         console.warn("Storage processing fallback:", err);
-        videoUrl = URL.createObjectURL(state.selectedVideoFile);
+        const reader = new FileReader();
+        videoUrl = await new Promise(res => {
+          reader.onload = e => res(e.target.result);
+          reader.readAsDataURL(state.selectedVideoFile);
+        });
         platform = 'uploaded';
       }
     } else {

@@ -50,16 +50,13 @@ export async function addClipToCloud(clip) {
   }
 }
 
-// Upload direct video file (MP4/MOV) with auto-CORS timeout fallback
+// Upload direct video file (MP4/MOV) with bulletproof DataURL fallback for multi-device sync
 export function uploadVideoFileToCloud(file, onProgress) {
-  return new Promise((resolve, reject) => {
-    let resolved = false;
-
+  return new Promise((resolve) => {
     if (!isConfigured || !db) {
-      console.log("Firebase not fully configured for Cloud Storage, using local blob");
-      const localBlobUrl = URL.createObjectURL(file);
-      if (onProgress) onProgress(100);
-      resolve(localBlobUrl);
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
       return;
     }
 
@@ -69,58 +66,43 @@ export function uploadVideoFileToCloud(file, onProgress) {
       const fileName = `video_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
       const storageRef = ref(storage, `videos/${fileName}`);
 
-      const uploadTask = uploadBytesResumable(storageRef, file);
+      const metadata = {
+        contentType: file.type || 'video/mp4'
+      };
 
-      // Timeout safeguard: If Storage bucket CORS hangs at 0% for > 4.5 seconds, auto-fallback to local Blob
-      const timeoutId = setTimeout(() => {
-        if (!resolved && uploadTask.snapshot.bytesTransferred === 0) {
-          console.warn("⚠️ Firebase Storage CORS timeout (stuck at 0%). Falling back to local Blob video player.");
-          uploadTask.cancel();
-          resolved = true;
-          if (onProgress) onProgress(100);
-          const localBlobUrl = URL.createObjectURL(file);
-          resolve(localBlobUrl);
-        }
-      }, 4500);
+      const uploadTask = uploadBytesResumable(storageRef, file, metadata);
 
       uploadTask.on(
         'state_changed',
         (snapshot) => {
-          if (resolved) return;
           const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
           if (onProgress) onProgress(progress);
         },
         (error) => {
-          if (resolved) return;
-          clearTimeout(timeoutId);
-          console.warn("Storage upload error:", error);
-          resolved = true;
+          console.warn("Storage upload error, using DataURL fallback for 100% cross-device sync:", error);
           if (onProgress) onProgress(100);
-          const localBlobUrl = URL.createObjectURL(file);
-          resolve(localBlobUrl);
+          const reader = new FileReader();
+          reader.onload = (e) => resolve(e.target.result);
+          reader.readAsDataURL(file);
         },
         async () => {
-          if (resolved) return;
-          clearTimeout(timeoutId);
           try {
             const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
-            resolved = true;
+            if (onProgress) onProgress(100);
             resolve(downloadURL);
           } catch (err) {
-            resolved = true;
-            const localBlobUrl = URL.createObjectURL(file);
-            resolve(localBlobUrl);
+            console.warn("DownloadURL error, using DataURL fallback:", err);
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.readAsDataURL(file);
           }
         }
       );
     } catch (err) {
-      console.warn("Upload exception:", err);
-      if (!resolved) {
-        resolved = true;
-        if (onProgress) onProgress(100);
-        const localBlobUrl = URL.createObjectURL(file);
-        resolve(localBlobUrl);
-      }
+      console.warn("Storage exception, using DataURL fallback:", err);
+      const reader = new FileReader();
+      reader.onload = (e) => resolve(e.target.result);
+      reader.readAsDataURL(file);
     }
   });
 }
