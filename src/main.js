@@ -23,7 +23,7 @@ let state = {
 };
 
 // Storage Keys
-const STORAGE_KEY_CLIPS = 'chieftains_rugby_clips_v1';
+const STORAGE_KEY_CLIPS = 'chieftains_rugby_clips_v2';
 const STORAGE_KEY_SAVED = 'chieftains_saved_clips_v1';
 
 // DOM Elements
@@ -96,8 +96,9 @@ async function init() {
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      // Merge cloud clips with any local temporary uploads
-      const localOnly = state.clips.filter(c => c.platform === 'uploaded' && !cloudClips.some(cc => cc.id === c.id));
+      // Retain local uploaded clips
+      const localClips = getStoredLocalClips();
+      const localOnly = localClips.filter(lc => !cloudClips.some(cc => cc.id === lc.id));
       state.clips = [...localOnly, ...cloudClips];
       updateStats();
       renderClips();
@@ -130,6 +131,15 @@ function updateCloudStatusBadge(active) {
   }
 }
 
+function getStoredLocalClips() {
+  try {
+    const storedClips = localStorage.getItem(STORAGE_KEY_CLIPS);
+    return storedClips ? JSON.parse(storedClips) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
 function loadLocalStorageClips() {
   try {
     const storedClips = localStorage.getItem(STORAGE_KEY_CLIPS);
@@ -157,7 +167,18 @@ function loadSavedIds() {
 }
 
 function saveClipsToStorage() {
-  localStorage.setItem(STORAGE_KEY_CLIPS, JSON.stringify(state.clips));
+  try {
+    // Only save serializable clips to storage
+    const serializable = state.clips.map(c => {
+      if (c.url && c.url.startsWith('blob:')) {
+        return { ...c, url: 'local_video_session' };
+      }
+      return c;
+    });
+    localStorage.setItem(STORAGE_KEY_CLIPS, JSON.stringify(serializable));
+  } catch (e) {
+    console.warn("Storage save limit reached:", e);
+  }
 }
 
 function saveSavedIdsToStorage() {
@@ -433,14 +454,14 @@ function renderVideoEmbed(clip) {
     `;
   } else if (clip.platform === 'uploaded') {
     videoEmbedWrapper.innerHTML = `
-      <video controls autoplay style="width: 100%; height: 100%; object-fit: contain;">
+      <video controls autoplay playsinline style="width: 100%; height: 100%; object-fit: contain;">
         <source src="${clip.url}">
         Your browser does not support HTML5 video playback.
       </video>
     `;
   } else {
     videoEmbedWrapper.innerHTML = `
-      <video controls autoplay src="${clip.url}"></video>
+      <video controls autoplay playsinline src="${clip.url}"></video>
     `;
   }
 }
@@ -782,7 +803,28 @@ function setupEventListeners() {
       dateAdded: new Date().toISOString().split('T')[0]
     };
 
-    // Immediate local UI update
+    // 1. AUTO-RESET ALL ACTIVE FILTERS so the new clip is 100% GUARANTEED to appear at top of grid!
+    state.activeCategory = 'all';
+    state.activePosition = 'all';
+    state.activeAgeGroup = 'all';
+    state.activeSquadSection = 'all';
+    state.activePlatform = 'all';
+    state.searchQuery = '';
+    state.activePlaylistFilter = null;
+    state.showOnlySaved = false;
+
+    searchInput.value = '';
+    ageGroupSelect.value = 'all';
+    positionSelect.value = 'all';
+    platformSelect.value = 'all';
+    sortSelect.value = 'newest';
+
+    document.querySelectorAll('.pill-filter').forEach(btn => btn.classList.remove('active'));
+    const allPill = document.querySelector('.pill-filter[data-squad="all"]');
+    if (allPill) allPill.classList.add('active');
+    renderCategoryTabs();
+
+    // 2. Add to local clips array & render
     state.clips.unshift(newClip);
     saveClipsToStorage();
     updateStats();
@@ -792,7 +834,7 @@ function setupEventListeners() {
       addClipToCloud(newClip).catch(err => console.error("Firestore cloud add error:", err));
     }
 
-    // Success Feedback & Auto-close modal after 800ms
+    // 3. Success Feedback & Auto-close modal after 800ms
     submitClipBtn.textContent = '✅ Success! Video Added';
     submitClipBtn.style.background = '#10b981';
 
