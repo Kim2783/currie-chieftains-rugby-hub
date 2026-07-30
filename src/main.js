@@ -2,6 +2,14 @@ import { INITIAL_CLIPS, SKILL_CATEGORIES, RUGBY_POSITIONS, SCOTTISH_AGE_GROUPS, 
 import { isConfigured } from './firebase/config.js';
 import { subscribeToClips, addClipToCloud, upvoteClipInCloud, addCommentToCloud, seedInitialClipsIfEmpty, uploadVideoFileToCloud } from './firebase/service.js';
 
+// Helper to extract 11-character YouTube Video ID from any link pattern
+function extractYouTubeId(url) {
+  if (!url) return '';
+  const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|shorts\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+  const match = String(url).match(regExp);
+  return (match && match[2] && match[2].length === 11) ? match[2] : '';
+}
+
 // Application State
 let state = {
   clips: INITIAL_CLIPS.map(sanitizeClip),
@@ -88,12 +96,16 @@ function sanitizeClip(clip) {
   const title = clip.title || 'Currie Chieftains Pitch Video';
   const description = clip.description || 'Pitch-side rugby video shared to Malleny Park vault.';
   const url = clip.url || clip.videoUrl || clip.downloadURL || clip.link || '';
-  const thumbnail = clip.thumbnail || clip.thumbUrl || 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80';
+  
+  const extractedYt = extractYouTubeId(url);
+  const embedId = extractedYt || clip.embedId || '';
+  const thumbnail = extractedYt ? `https://img.youtube.com/vi/${extractedYt}/hqdefault.jpg` : 
+                    (clip.thumbnail || clip.thumbUrl || 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80');
 
   let platform = clip.platform;
   if (!platform) {
-    if (url && (url.includes('youtube.com') || url.includes('youtu.be'))) {
-      platform = url.includes('/shorts/') ? 'youtube-shorts' : 'youtube';
+    if (extractedYt || (url && (url.includes('youtube.com') || url.includes('youtu.be')))) {
+      platform = (url && url.includes('/shorts/')) ? 'youtube-shorts' : 'youtube';
     } else if (url && url.includes('instagram.com')) {
       platform = 'instagram';
     } else {
@@ -116,8 +128,8 @@ function sanitizeClip(clip) {
     description,
     platform,
     url,
-    embedId: clip.embedId || '',
-    isShort: !!clip.isShort,
+    embedId,
+    isShort: !!clip.isShort || (url && url.includes('/shorts/')),
     thumbnail,
     category: clip.category || 'passing',
     level: clip.level || 'intermediate',
@@ -128,7 +140,7 @@ function sanitizeClip(clip) {
     author: clip.author || 'Currie Contributor',
     authorRole: clip.authorRole || 'Coach / Player',
     upvotes: typeof clip.upvotes === 'number' ? clip.upvotes : 1,
-    duration: clip.duration || 'Pitch Video 📱',
+    duration: clip.duration || 'Video',
     coachingPoints,
     comments,
     dateAdded: clip.dateAdded || new Date().toISOString().split('T')[0]
@@ -517,51 +529,55 @@ window.openClipModal = function(clipId) {
 };
 
 function renderVideoEmbed(clip) {
-  videoEmbedWrapper.className = `video-player-wrapper ${clip.isShort ? 'shorts-player' : ''}`;
+  const ytId = extractYouTubeId(clip.url) || clip.embedId;
 
-  if (clip.platform === 'youtube' || clip.platform === 'youtube-shorts') {
-    const embedUrl = `https://www.youtube-nocookie.com/embed/${clip.embedId}?autoplay=1&rel=0`;
+  if (ytId || clip.platform === 'youtube' || clip.platform === 'youtube-shorts') {
+    const finalYtId = ytId || clip.embedId;
+    videoEmbedWrapper.className = `video-player-wrapper ${clip.isShort ? 'shorts-player' : ''}`;
+    
+    if (finalYtId) {
+      const embedUrl = `https://www.youtube-nocookie.com/embed/${finalYtId}?autoplay=1&rel=0&enablejsapi=1`;
+      videoEmbedWrapper.innerHTML = `
+        <iframe src="${embedUrl}" title="${clip.title || 'YouTube Skill Video'}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen style="width:100%; height:100%; border:0;"></iframe>
+      `;
+      return;
+    }
+  }
+
+  if (clip.platform === 'instagram' || (clip.url && clip.url.includes('instagram.com'))) {
+    videoEmbedWrapper.className = `video-player-wrapper shorts-player`;
     videoEmbedWrapper.innerHTML = `
-      <iframe src="${embedUrl}" title="${clip.title}" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
-    `;
-  } else if (clip.platform === 'instagram') {
-    videoEmbedWrapper.innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 2rem; background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%); color: white; text-align: center; gap: 1rem;">
-        <div style="font-size: 3rem;">📸</div>
-        <h3 style="font-size: 1.3rem; font-weight: 800;">Instagram Reel Preview</h3>
-        <p style="font-size: 0.9rem; max-width: 400px; color: #fff;">
-          Watch this reel directly on Instagram for full audio and high resolution.
+      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; padding: 2rem; background: linear-gradient(135deg, #833ab4 0%, #fd1d1d 50%, #fcb045 100%); color: white; text-align: center; gap: 1.25rem; border-radius: var(--radius-md);">
+        <div style="font-size: 3.5rem;">📸</div>
+        <h3 style="font-size: 1.25rem; font-weight: 800; color: #fff;">Instagram Reel Skill Video</h3>
+        <p style="font-size: 0.9rem; max-width: 320px; color: #fff; line-height: 1.4;">
+          Watch this reel directly on Instagram for full audio, high-def playback and comments.
         </p>
-        <a href="${clip.url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="background: #ffffff; color: #111; font-weight: 800;">
-          Open Reel on Instagram ↗
+        <a href="${clip.url}" target="_blank" rel="noopener noreferrer" class="btn btn-primary" style="background: #ffffff; color: #111; font-weight: 800; padding: 0.75rem 1.5rem; text-decoration: none; border-radius: 30px;">
+          ▶ Open Reel on Instagram ↗
         </a>
       </div>
     `;
-  } else if (clip.platform === 'uploaded') {
-    videoEmbedWrapper.innerHTML = `
-      <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; position: relative;">
-        <video controls playsinline webkit-playsinline preload="auto" style="width: 100%; height: 100%; max-height: 480px; object-fit: contain;" src="${clip.url}">
-          Your browser does not support HTML5 video playback.
-        </video>
-        <div style="position: absolute; bottom: 0.6rem; right: 0.6rem; z-index: 5;">
-          <a href="${clip.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; background: rgba(0,0,0,0.85); border-color: var(--color-gold); color: #fff;">
-            ↗ Open Video Link
-          </a>
-        </div>
+    return;
+  }
+
+  // Uploaded Video or HTML5 Video Stream
+  videoEmbedWrapper.className = `video-player-wrapper`;
+  videoEmbedWrapper.innerHTML = `
+    <div style="width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; position: relative;">
+      <video controls playsinline webkit-playsinline preload="auto" style="width: 100%; height: 100%; max-height: 480px; object-fit: contain;" src="${clip.url}">
+        Your browser does not support HTML5 video playback.
+      </video>
+      <div style="position: absolute; bottom: 0.6rem; right: 0.6rem; z-index: 5;">
+        <a href="${clip.url}" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="font-size: 0.75rem; padding: 0.25rem 0.6rem; background: rgba(0,0,0,0.85); border-color: var(--color-gold); color: #fff;">
+          ↗ Open Video Link
+        </a>
       </div>
-    `;
-    const v = videoEmbedWrapper.querySelector('video');
-    if (v) {
-      v.play().catch(e => console.log("Play pause:", e));
-    }
-  } else {
-    videoEmbedWrapper.innerHTML = `
-      <video controls playsinline webkit-playsinline style="width: 100%; height: 100%; object-fit: contain;" src="${clip.url}"></video>
-    `;
-    const v = videoEmbedWrapper.querySelector('video');
-    if (v) {
-      v.play().catch(e => console.log("Play pause:", e));
-    }
+    </div>
+  `;
+  const v = videoEmbedWrapper.querySelector('video');
+  if (v) {
+    v.play().catch(e => console.log("Video play request handled:", e));
   }
 }
 
@@ -969,24 +985,17 @@ function setupEventListeners() {
 
 function parseMediaUrl(url) {
   let platform = 'youtube';
-  let embedId = '';
+  let embedId = extractYouTubeId(url);
   let isShort = false;
   let thumbnail = 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80';
 
   if (url.includes('youtube.com/shorts/') || url.includes('youtu.be/shorts/')) {
     platform = 'youtube-shorts';
     isShort = true;
-    const parts = url.split('/shorts/');
-    if (parts[1]) embedId = parts[1].split('?')[0];
-    thumbnail = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
+    if (embedId) thumbnail = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
   } else if (url.includes('youtube.com') || url.includes('youtu.be')) {
     platform = 'youtube';
-    if (url.includes('v=')) {
-      embedId = url.split('v=')[1].split('&')[0];
-    } else if (url.includes('youtu.be/')) {
-      embedId = url.split('youtu.be/')[1].split('?')[0];
-    }
-    thumbnail = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
+    if (embedId) thumbnail = `https://img.youtube.com/vi/${embedId}/hqdefault.jpg`;
   } else if (url.includes('instagram.com')) {
     platform = 'instagram';
     isShort = true;
