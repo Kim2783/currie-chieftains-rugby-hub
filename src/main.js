@@ -548,24 +548,7 @@ function setupEventListeners() {
     fileUploadContainer.style.display = 'flex';
   });
 
-  // File Dropzone handlers
-  dropzone.addEventListener('click', () => videoFileInput.click());
-
-  dropzone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    dropzone.classList.add('drag-over');
-  });
-
-  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
-
-  dropzone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    dropzone.classList.remove('drag-over');
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      handleSelectedVideoFile(e.dataTransfer.files[0]);
-    }
-  });
-
+  // Native file input listener
   videoFileInput.addEventListener('change', (e) => {
     if (e.target.files && e.target.files[0]) {
       handleSelectedVideoFile(e.target.files[0]);
@@ -573,13 +556,9 @@ function setupEventListeners() {
   });
 
   function handleSelectedVideoFile(file) {
-    if (!file.type.startsWith('video/')) {
-      alert("Please select a valid video file (.mp4, .mov, .webm, .m4v).");
-      return;
-    }
     state.selectedVideoFile = file;
     const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-    fileSelectedInfo.innerHTML = `✅ Selected: <strong>${file.name}</strong> (${sizeMb} MB)`;
+    fileSelectedInfo.innerHTML = `✅ Selected Video: <strong>${file.name}</strong> (${sizeMb} MB)`;
     fileSelectedInfo.style.display = 'block';
   }
 
@@ -730,7 +709,7 @@ function setupEventListeners() {
 
     if (state.activeMediaTab === 'file') {
       if (!state.selectedVideoFile) {
-        alert("Please select a video file from your device to upload.");
+        alert("Please tap 'Choose Video File from Phone' to select your pitch recording.");
         return;
       }
 
@@ -748,14 +727,13 @@ function setupEventListeners() {
         } else {
           videoUrl = URL.createObjectURL(state.selectedVideoFile);
           uploadProgressBar.style.width = '100%';
-          uploadProgressText.textContent = 'Ready (Local Mode)';
+          uploadProgressText.textContent = 'Ready (Local Preview)';
         }
         platform = 'uploaded';
       } catch (err) {
-        alert("Video upload failed. Please try again.");
-        submitClipBtn.disabled = false;
-        submitClipBtn.textContent = '➕ Share to Vault';
-        return;
+        console.warn("Cloud Storage upload failed, creating instant local preview:", err);
+        videoUrl = URL.createObjectURL(state.selectedVideoFile);
+        platform = 'uploaded';
       }
     } else {
       const rawUrl = document.getElementById('clipUrlInput').value.trim();
@@ -812,7 +790,7 @@ function setupEventListeners() {
       renderClips();
     }
 
-    // Reset Form
+    // Reset Form & UI state
     addClipForm.reset();
     submitClipBtn.disabled = false;
     submitClipBtn.textContent = '➕ Share to Vault';

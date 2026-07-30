@@ -31,10 +31,10 @@
           <span>📚</span> Playlists
         </button>
         <button class="btn btn-secondary" id="openSavedBtn">
-          <span>⭐</span> My Training Bag (<span id="savedCount">0</span>)
+          <span>⭐</span> My Bag (<span id="savedCount">0</span>)
         </button>
         <button class="btn btn-primary" id="openAddModalBtn">
-          <span>+</span> Share Clip / Video
+          <span>+</span> Share Clip
         </button>
       </div>
     </div>
@@ -59,7 +59,7 @@
           </div>
           <div class="stat-item">
             <span class="stat-value">3</span>
-            <span class="stat-label">Sections (Minis, Youth, Adult Rugby)</span>
+            <span class="stat-label">Sections (Minis, Youth, Adult)</span>
           </div>
           <div class="stat-item">
             <span class="stat-value">13</span>
@@ -255,12 +255,14 @@
 
         <!-- Option B: Upload Video File -->
         <div id="fileUploadContainer" class="form-group" style="display: none;">
-          <label>Upload Video from phone or computer (MP4, MOV, WEBM)</label>
+          <label style="font-weight: 700; color: var(--color-gold);">Select or Record Pitch Video (MP4, MOV, WEBM):</label>
           <div class="file-dropzone" id="dropzone">
-            <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">📹</div>
-            <div style="font-weight: 700; color: #fff; font-size: 1rem;">Tap or Drag & Drop Video File</div>
-            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Upload pitch-side recording directly</div>
-            <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+            <div style="font-size: 2rem; margin-bottom: 0.3rem;">📹</div>
+            <label for="videoFileInput" class="btn btn-secondary" style="cursor: pointer; background: var(--color-gold); color: #0b0f19; font-weight: 800; margin-bottom: 0.4rem;">
+              📁 Choose Video File from Phone
+            </label>
+            <input type="file" id="videoFileInput" accept="video/*" style="opacity: 0; position: absolute; width: 1px; height: 1px;">
+            <div style="font-size: 0.775rem; color: var(--text-muted);">Select video recorded on phone or computer</div>
           </div>
           <div id="fileSelectedInfo" style="font-size: 0.85rem; color: var(--color-gold); font-weight: 700; margin-top: 0.4rem; display: none;"></div>
           
