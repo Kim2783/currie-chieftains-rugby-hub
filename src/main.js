@@ -4,7 +4,7 @@ import { subscribeToClips, addClipToCloud, upvoteClipInCloud, addCommentToCloud,
 
 // Application State
 let state = {
-  clips: [...INITIAL_CLIPS],
+  clips: INITIAL_CLIPS.map(sanitizeClip),
   savedClipIds: [],
   activeCategory: 'all',
   activePosition: 'all',
@@ -80,6 +80,54 @@ const openSavedBtn = document.getElementById('openSavedBtn');
 const spinChallengeBtn = document.getElementById('spinChallengeBtn');
 const challengeOutput = document.getElementById('challengeOutput');
 
+// Defensive Sanitization Helper for 100% Robust Clip Rendering
+function sanitizeClip(clip) {
+  if (!clip) return null;
+  const ageGroups = Array.isArray(clip.ageGroups) && clip.ageGroups.length > 0 ? clip.ageGroups :
+                    clip.ageGroup ? [clip.ageGroup] : ['u14'];
+  const ageCategories = Array.isArray(clip.ageCategories) && clip.ageCategories.length > 0 ? clip.ageCategories :
+                        [getAgeCategoryFromId(ageGroups[0])];
+  const positions = Array.isArray(clip.positions) && clip.positions.length > 0 ? clip.positions : ['all'];
+  const tags = Array.isArray(clip.tags) ? clip.tags : ageGroups.map(ag => `#${ag}`);
+  const coachingPoints = Array.isArray(clip.coachingPoints) ? clip.coachingPoints : [];
+  const comments = Array.isArray(clip.comments) ? clip.comments : [];
+
+  let platform = clip.platform;
+  if (!platform) {
+    if (clip.url && (clip.url.includes('youtube.com') || clip.url.includes('youtu.be'))) {
+      platform = clip.url.includes('/shorts/') ? 'youtube-shorts' : 'youtube';
+    } else if (clip.url && clip.url.includes('instagram.com')) {
+      platform = 'instagram';
+    } else {
+      platform = 'uploaded';
+    }
+  }
+
+  return {
+    id: clip.id || 'clip-' + Date.now(),
+    title: clip.title || 'Rugby Skill Video',
+    description: clip.description || 'Shared Currie Chieftains rugby video.',
+    platform,
+    url: clip.url || '',
+    embedId: clip.embedId || '',
+    isShort: !!clip.isShort,
+    thumbnail: clip.thumbnail || 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80',
+    category: clip.category || 'passing',
+    level: clip.level || 'intermediate',
+    ageGroups,
+    ageCategories,
+    positions,
+    tags,
+    author: clip.author || 'Currie Contributor',
+    authorRole: clip.authorRole || 'Coach / Player',
+    upvotes: typeof clip.upvotes === 'number' ? clip.upvotes : 1,
+    duration: clip.duration || 'Video',
+    coachingPoints,
+    comments,
+    dateAdded: clip.dateAdded || new Date().toISOString().split('T')[0]
+  };
+}
+
 // Initialize App
 async function init() {
   loadSavedIds();
@@ -100,18 +148,21 @@ async function init() {
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      // 1. Auto-sync clips stored locally on this device to Cloud Firestore
-      const localClips = getStoredLocalClips();
+      // Sanitize all incoming cloud documents
+      const sanitizedCloud = (cloudClips || []).map(sanitizeClip).filter(Boolean);
+
+      // Auto-sync clips stored locally on this device to Cloud Firestore
+      const localClips = getStoredLocalClips().map(sanitizeClip).filter(Boolean);
       localClips.forEach(lc => {
-        if (!cloudClips.some(cc => cc.id === lc.id)) {
+        if (!sanitizedCloud.some(cc => cc.id === lc.id)) {
           console.log("🔥 Auto-syncing local clip to Cloud Firestore:", lc.title);
           addClipToCloud(lc);
         }
       });
 
-      // 2. Combine Cloud clips with local clips
+      // Combine Cloud clips with local clips without duplication
       const combinedMap = new Map();
-      cloudClips.forEach(c => combinedMap.set(c.id, c));
+      sanitizedCloud.forEach(c => combinedMap.set(c.id, c));
       localClips.forEach(lc => {
         if (!combinedMap.has(lc.id)) {
           combinedMap.set(lc.id, lc);
@@ -170,18 +221,18 @@ function loadLocalStorageClips() {
   try {
     const storedClips = localStorage.getItem(STORAGE_KEY_CLIPS);
     if (storedClips) {
-      const parsed = JSON.parse(storedClips);
+      const parsed = JSON.parse(storedClips).map(sanitizeClip).filter(Boolean);
       const map = new Map();
-      INITIAL_CLIPS.forEach(c => map.set(c.id, c));
+      INITIAL_CLIPS.forEach(c => map.set(c.id, sanitizeClip(c)));
       parsed.forEach(c => map.set(c.id, c));
       state.clips = Array.from(map.values());
     } else {
-      state.clips = [...INITIAL_CLIPS];
+      state.clips = INITIAL_CLIPS.map(sanitizeClip);
       saveClipsToStorage();
     }
   } catch (err) {
     console.error('LocalStorage load error:', err);
-    state.clips = [...INITIAL_CLIPS];
+    state.clips = INITIAL_CLIPS.map(sanitizeClip);
   }
 }
 
@@ -247,16 +298,19 @@ function renderFormAgeCheckboxes() {
 
 function getFilteredClips() {
   return state.clips.filter(clip => {
+    if (!clip) return false;
     const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
     const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
+    const clipPositions = clip.positions || ['all'];
+    const clipTags = clip.tags || [];
 
     // Search query
     if (state.searchQuery) {
       const q = state.searchQuery.toLowerCase();
-      const matchTitle = clip.title.toLowerCase().includes(q);
-      const matchDesc = clip.description.toLowerCase().includes(q);
-      const matchAuthor = clip.author.toLowerCase().includes(q);
-      const matchTags = clip.tags.some(t => t.toLowerCase().includes(q));
+      const matchTitle = (clip.title || '').toLowerCase().includes(q);
+      const matchDesc = (clip.description || '').toLowerCase().includes(q);
+      const matchAuthor = (clip.author || '').toLowerCase().includes(q);
+      const matchTags = clipTags.some(t => t.toLowerCase().includes(q));
       const matchAge = clipAges.some(a => a.toLowerCase().includes(q) || getAgeGroupLabel(a).toLowerCase().includes(q));
       if (!matchTitle && !matchDesc && !matchAuthor && !matchTags && !matchAge) return false;
     }
@@ -291,7 +345,7 @@ function getFilteredClips() {
 
     // Position filter (supports "none" for no position tagged)
     if (state.activePosition !== 'all') {
-      if (!clip.positions.includes(state.activePosition)) return false;
+      if (!clipPositions.includes(state.activePosition)) return false;
     }
 
     // Platform filter
@@ -306,7 +360,7 @@ function getFilteredClips() {
     } else if (state.sortBy === 'upvotes') {
       return (b.upvotes || 0) - (a.upvotes || 0);
     } else if (state.sortBy === 'title') {
-      return a.title.localeCompare(b.title);
+      return (a.title || '').localeCompare(b.title || '');
     }
     return 0;
   });
@@ -322,7 +376,7 @@ function getAgeCategoryFromId(ageId) {
 
 function getAgeGroupLabel(ageId) {
   const ag = SCOTTISH_AGE_GROUPS.find(a => a.id === ageId);
-  return ag ? ag.name : ageId.toUpperCase();
+  return ag ? ag.name : (ageId ? ageId.toUpperCase() : 'ALL');
 }
 
 function renderClips() {
@@ -350,6 +404,7 @@ function renderClips() {
                           clip.platform === 'instagram' ? 'Instagram 📸' : 'Uploaded Video 📱';
     const platformClass = `platform-${clip.platform}`;
     const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+    const clipTags = clip.tags || [];
 
     const ageBadgesHtml = clipAges.slice(0, 3).map(agId => {
       const ageCat = getAgeCategoryFromId(agId);
@@ -378,7 +433,7 @@ function renderClips() {
           <h4 class="card-title" onclick="window.openClipModal('${clip.id}')" style="cursor: pointer;">${clip.title}</h4>
 
           <div class="card-tags">
-            ${clip.tags.slice(0, 3).map(tag => `<span class="tag-chip">${tag}</span>`).join('')}
+            ${clipTags.slice(0, 3).map(tag => `<span class="tag-chip">${tag}</span>`).join('')}
           </div>
 
           <div class="card-footer">
@@ -426,7 +481,7 @@ window.openClipModal = function(clipId) {
   modalAgeBadgesWrapper.innerHTML = clipAges.map(agId => {
     const ageCat = getAgeCategoryFromId(agId);
     return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
-  }).join(' ') + `<span class="badge-level level-${clip.level}">${clip.level.toUpperCase()}</span>`;
+  }).join(' ') + `<span class="badge-level level-${clip.level || 'intermediate'}">${(clip.level || 'INTERMEDIATE').toUpperCase()}</span>`;
 
   modalAuthorRole.textContent = `${clip.author} (${clip.authorRole || 'Contributor'})`;
   modalDescription.textContent = clip.description;
@@ -814,7 +869,7 @@ function setupEventListeners() {
 
     const pointsArr = rawPoints ? rawPoints.split('\n').filter(p => p.trim()) : [];
 
-    const newClip = {
+    const newClip = sanitizeClip({
       id: 'clip-' + Date.now(),
       title,
       description: description || 'Pitch-side rugby video shared to Malleny Park vault.',
@@ -836,7 +891,7 @@ function setupEventListeners() {
       coachingPoints: pointsArr,
       comments: [],
       dateAdded: new Date().toISOString().split('T')[0]
-    };
+    });
 
     // 1. AUTO-RESET ALL ACTIVE FILTERS
     state.activeCategory = 'all';
