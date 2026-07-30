@@ -196,7 +196,7 @@ async function init() {
       if (state.currentModalClipId) {
         const activeClip = state.clips.find(c => c.id === state.currentModalClipId);
         if (activeClip) {
-          modalUpvotesCount.textContent = activeClip.upvotes || 0;
+          if (modalUpvotesCount) modalUpvotesCount.textContent = activeClip.upvotes || 0;
           renderModalComments(activeClip);
         }
       }
@@ -276,28 +276,31 @@ function saveClipsToStorage() {
 
 function saveSavedIdsToStorage() {
   localStorage.setItem(STORAGE_KEY_SAVED, JSON.stringify(state.savedClipIds));
-  savedCount.textContent = state.savedClipIds.length;
+  if (savedCount) savedCount.textContent = state.savedClipIds.length;
 }
 
 function updateStats() {
-  statTotalClips.textContent = state.clips.length;
+  if (statTotalClips) statTotalClips.textContent = state.clips.length;
   const totalUpvotes = state.clips.reduce((acc, c) => acc + (c.upvotes || 0), 0);
-  statTotalUpvotes.textContent = totalUpvotes;
-  savedCount.textContent = state.savedClipIds.length;
+  if (statTotalUpvotes) statTotalUpvotes.textContent = totalUpvotes;
+  if (savedCount) savedCount.textContent = state.savedClipIds.length;
 }
 
 function renderAgeGroupOptions() {
+  if (!ageGroupSelect) return;
   ageGroupSelect.innerHTML = `<option value="all">🏴󠁧󠁢󠁳󠁣󠁴󠁿 All Specific Age Levels</option>` +
     SCOTTISH_AGE_GROUPS.map(ag => `<option value="${ag.id}">${ag.name}</option>`).join('');
 }
 
 function renderPositionOptions() {
+  if (!positionSelect) return;
   positionSelect.innerHTML = RUGBY_POSITIONS.map(pos => 
     `<option value="${pos.id}">${pos.name}</option>`
   ).join('');
 }
 
 function renderCategoryTabs() {
+  if (!categoryTabs) return;
   categoryTabs.innerHTML = SKILL_CATEGORIES.map(cat => `
     <button class="tab-btn ${cat.id === state.activeCategory ? 'active' : ''}" data-category="${cat.id}">
       <span>${cat.icon}</span> ${cat.name}
@@ -400,81 +403,86 @@ function getAgeGroupLabel(ageId) {
 
 function renderClips() {
   const filtered = getFilteredClips();
-  clipsCountText.textContent = `Showing ${filtered.length} of ${state.clips.length} clips`;
+  if (clipsCountText) clipsCountText.textContent = `Showing ${filtered.length} of ${state.clips.length} clips`;
 
   if (filtered.length === 0) {
-    clipsGrid.innerHTML = `
-      <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
-        <div style="font-size: 3rem; margin-bottom: 1rem;">🏉</div>
-        <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Rugby Clips Found</h3>
-        <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
-          No skill videos match your active filter selection. Try adjusting your search term or squad level.
-        </p>
-        <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset All Filters</button>
-      </div>
-    `;
+    if (clipsGrid) {
+      clipsGrid.innerHTML = `
+        <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
+          <div style="font-size: 3rem; margin-bottom: 1rem;">🏉</div>
+          <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Rugby Clips Found</h3>
+          <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
+            No skill videos match your active filter selection. Try adjusting your search term or squad level.
+          </p>
+          <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset All Filters</button>
+        </div>
+      `;
+    }
     return;
   }
 
-  clipsGrid.innerHTML = filtered.map(clip => {
-    const isSaved = state.savedClipIds.includes(clip.id);
-    const platformLabel = clip.platform === 'youtube-shorts' ? 'Shorts ⚡' :
-                          clip.platform === 'youtube' ? 'YouTube ▶' :
-                          clip.platform === 'instagram' ? 'Instagram 📸' : 'Uploaded Video 📱';
-    const platformClass = `platform-${clip.platform}`;
-    const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
-    const clipTags = clip.tags || [];
+  if (clipsGrid) {
+    clipsGrid.innerHTML = filtered.map(clip => {
+      const isSaved = state.savedClipIds.includes(clip.id);
+      const platformLabel = clip.platform === 'youtube-shorts' ? 'Shorts ⚡' :
+                            clip.platform === 'youtube' ? 'YouTube ▶' :
+                            clip.platform === 'instagram' ? 'Instagram 📸' : 'Uploaded Video 📱';
+      const platformClass = `platform-${clip.platform}`;
+      const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+      const clipTags = clip.tags || [];
 
-    const ageBadgesHtml = clipAges.slice(0, 3).map(agId => {
-      const ageCat = getAgeCategoryFromId(agId);
-      return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
-    }).join(' ');
+      const ageBadgesHtml = clipAges.slice(0, 3).map(agId => {
+        const ageCat = getAgeCategoryFromId(agId);
+        return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
+      }).join(' ');
 
-    return `
-      <article class="clip-card" data-id="${clip.id}">
-        <div class="card-thumbnail ${clip.isShort ? 'shorts-ratio' : ''}" onclick="window.openClipModal('${clip.id}')">
-          <img src="${clip.thumbnail}" alt="${clip.title}" loading="lazy">
-          <div class="card-play-overlay">
-            <div class="play-btn-circle">▶</div>
-          </div>
-          <div class="card-badge-platform ${platformClass}">
-            ${platformLabel}
-          </div>
-          <div class="card-duration">${clip.duration || 'Video'}</div>
-        </div>
-
-        <div class="card-body">
-          <div class="card-meta">
-            ${ageBadgesHtml}
-            <span class="card-category">${getCategoryName(clip.category)}</span>
+      return `
+        <article class="clip-card" data-id="${clip.id}">
+          <div class="card-thumbnail ${clip.isShort ? 'shorts-ratio' : ''}" onclick="window.openClipModal('${clip.id}')">
+            <img src="${clip.thumbnail}" alt="${clip.title}" loading="lazy">
+            <div class="card-play-overlay">
+              <div class="play-btn-circle">▶</div>
+            </div>
+            <div class="card-badge-platform ${platformClass}">
+              ${platformLabel}
+            </div>
+            <div class="card-duration">${clip.duration || 'Video'}</div>
           </div>
 
-          <h4 class="card-title" onclick="window.openClipModal('${clip.id}')" style="cursor: pointer;">${clip.title}</h4>
+          <div class="card-body">
+            <div class="card-meta">
+              ${ageBadgesHtml}
+              <span class="card-category">${getCategoryName(clip.category)}</span>
+            </div>
 
-          <div class="card-tags">
-            ${clipTags.slice(0, 3).map(tag => `<span class="tag-chip">${tag}</span>`).join('')}
-          </div>
+            <h4 class="card-title" onclick="window.openClipModal('${clip.id}')" style="cursor: pointer;">${clip.title}</h4>
 
-          <div class="card-footer">
-            <span style="font-weight: 600; font-size: 0.8rem;">👤 ${clip.author}</span>
-            
-            <div style="display: flex; gap: 0.5rem; align-items: center;">
-              <button class="resp-btn" onclick="event.stopPropagation(); window.upvoteClip('${clip.id}')" title="Give Rugby Resps">
-                🏉 ${clip.upvotes || 0}
-              </button>
+            <div class="card-tags">
+              ${clipTags.slice(0, 3).map(tag => `<span class="tag-chip">${tag}</span>`).join('')}
+            </div>
 
-              <button class="btn btn-ghost" style="padding: 0.2rem 0.4rem; font-size: 1rem;" onclick="event.stopPropagation(); window.toggleSaveClip('${clip.id}')" title="${isSaved ? 'Remove from Training Bag' : 'Save to Training Bag'}">
-                ${isSaved ? '⭐' : '☆'}
-              </button>
+            <div class="card-footer">
+              <span style="font-weight: 600; font-size: 0.8rem;">👤 ${clip.author}</span>
+              
+              <div style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="resp-btn" onclick="event.stopPropagation(); window.upvoteClip('${clip.id}')" title="Give Rugby Resps">
+                  🏉 ${clip.upvotes || 0}
+                </button>
+
+                <button class="btn btn-ghost" style="padding: 0.2rem 0.4rem; font-size: 1rem;" onclick="event.stopPropagation(); window.toggleSaveClip('${clip.id}')" title="${isSaved ? 'Remove from Training Bag' : 'Save to Training Bag'}">
+                  ${isSaved ? '⭐' : '☆'}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </article>
-    `;
-  }).join('');
+        </article>
+      `;
+    }).join('');
+  }
 }
 
 function renderPlaylists() {
+  if (!playlistCards) return;
   playlistCards.innerHTML = CHIEFTAINS_PLAYLISTS.map(pl => `
     <div class="playlist-card ${state.activePlaylistFilter === pl.id ? 'border-gold' : ''}" onclick="window.filterByPlaylist('${pl.id}')">
       <div class="playlist-title">${pl.title}</div>
@@ -494,41 +502,55 @@ window.openClipModal = function(clipId) {
   if (!clip) return;
 
   state.currentModalClipId = clipId;
-  modalClipTitle.textContent = clip.title;
+  if (modalClipTitle) modalClipTitle.textContent = clip.title || 'Rugby Skill Video';
   
   const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
-  modalAgeBadgesWrapper.innerHTML = clipAges.map(agId => {
-    const ageCat = getAgeCategoryFromId(agId);
-    return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
-  }).join(' ') + `<span class="badge-level level-${clip.level || 'intermediate'}">${(clip.level || 'INTERMEDIATE').toUpperCase()}</span>`;
+  if (modalAgeBadgesWrapper) {
+    modalAgeBadgesWrapper.innerHTML = clipAges.map(agId => {
+      const ageCat = getAgeCategoryFromId(agId);
+      return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
+    }).join(' ') + `<span class="badge-level level-${clip.level || 'intermediate'}">${(clip.level || 'INTERMEDIATE').toUpperCase()}</span>`;
+  }
 
-  modalAuthorRole.textContent = `${clip.author} (${clip.authorRole || 'Contributor'})`;
-  modalDescription.textContent = clip.description;
-  modalUpvotesCount.textContent = clip.upvotes || 0;
+  const modalAuthorRole = document.getElementById('modalAuthorRole');
+  if (modalAuthorRole) {
+    modalAuthorRole.textContent = `👤 ${clip.author || 'Currie Contributor'} (${clip.authorRole || 'Contributor'})`;
+  }
+  if (modalDescription) modalDescription.textContent = clip.description || '';
+  if (modalUpvotesCount) modalUpvotesCount.textContent = clip.upvotes || 0;
 
   renderVideoEmbed(clip);
 
+  const coachingBox = document.getElementById('modalCoachingBox');
   if (clip.coachingPoints && clip.coachingPoints.length > 0) {
-    modalCoachingList.innerHTML = clip.coachingPoints.map((pt, idx) => `
-      <li class="checklist-item">
-        <input type="checkbox" id="chk-${idx}">
-        <label for="chk-${idx}">${pt}</label>
-      </li>
-    `).join('');
-    document.getElementById('modalCoachingBox').style.display = 'block';
+    if (modalCoachingList) {
+      modalCoachingList.innerHTML = clip.coachingPoints.map((pt, idx) => `
+        <li class="checklist-item">
+          <input type="checkbox" id="chk-${idx}">
+          <label for="chk-${idx}">${pt}</label>
+        </li>
+      `).join('');
+    }
+    if (coachingBox) coachingBox.style.display = 'block';
   } else {
-    document.getElementById('modalCoachingBox').style.display = 'none';
+    if (coachingBox) coachingBox.style.display = 'none';
   }
 
   renderModalComments(clip);
 
-  const isSaved = state.savedClipIds.includes(clipId);
-  modalSaveBtn.textContent = isSaved ? '⭐ In Training Bag' : '⭐ Save to Bag';
+  if (modalSaveBtn) {
+    const isSaved = state.savedClipIds.includes(clipId);
+    modalSaveBtn.textContent = isSaved ? '⭐ In Training Bag' : '⭐ Save to Bag';
+  }
 
-  playerModal.classList.add('active');
+  if (playerModal) {
+    playerModal.classList.add('active');
+  }
 };
 
 function renderVideoEmbed(clip) {
+  if (!videoEmbedWrapper) return;
+
   const ytId = extractYouTubeId(clip.url) || clip.embedId;
 
   if (ytId || clip.platform === 'youtube' || clip.platform === 'youtube-shorts') {
@@ -582,6 +604,7 @@ function renderVideoEmbed(clip) {
 }
 
 function renderModalComments(clip) {
+  if (!modalCommentList) return;
   if (!clip.comments || clip.comments.length === 0) {
     modalCommentList.innerHTML = `<p style="font-size: 0.85rem; color: var(--text-dim);">No coaching notes yet. Be the first to post feedback!</p>`;
     return;
@@ -610,7 +633,7 @@ window.upvoteClip = async function(clipId) {
     }
 
     if (state.currentModalClipId === clipId) {
-      modalUpvotesCount.textContent = clip.upvotes;
+      if (modalUpvotesCount) modalUpvotesCount.textContent = clip.upvotes;
     }
   }
 };
@@ -625,8 +648,10 @@ window.toggleSaveClip = function(clipId) {
   saveSavedIdsToStorage();
   renderClips();
   if (state.currentModalClipId === clipId) {
-    const isSaved = state.savedClipIds.includes(clipId);
-    modalSaveBtn.textContent = isSaved ? '⭐ In Training Bag' : '⭐ Save to Bag';
+    if (modalSaveBtn) {
+      const isSaved = state.savedClipIds.includes(clipId);
+      modalSaveBtn.textContent = isSaved ? '⭐ In Training Bag' : '⭐ Save to Bag';
+    }
   }
 };
 
@@ -639,7 +664,8 @@ window.filterByPlaylist = function(playlistId) {
   state.showOnlySaved = false;
   renderPlaylists();
   renderClips();
-  document.getElementById('toolbarSection').scrollIntoView({ behavior: 'smooth' });
+  const tb = document.getElementById('toolbarSection');
+  if (tb) tb.scrollIntoView({ behavior: 'smooth' });
 };
 
 window.resetAllFilters = function() {
@@ -653,14 +679,15 @@ window.resetAllFilters = function() {
   state.activePlaylistFilter = null;
   state.showOnlySaved = false;
 
-  searchInput.value = '';
-  ageGroupSelect.value = 'all';
-  positionSelect.value = 'all';
-  platformSelect.value = 'all';
-  sortSelect.value = 'newest';
+  if (searchInput) searchInput.value = '';
+  if (ageGroupSelect) ageGroupSelect.value = 'all';
+  if (positionSelect) positionSelect.value = 'all';
+  if (platformSelect) platformSelect.value = 'all';
+  if (sortSelect) sortSelect.value = 'newest';
   
   document.querySelectorAll('.pill-filter').forEach(btn => btn.classList.remove('active'));
-  document.querySelector('.pill-filter[data-squad="all"]').classList.add('active');
+  const allPill = document.querySelector('.pill-filter[data-squad="all"]');
+  if (allPill) allPill.classList.add('active');
 
   renderCategoryTabs();
   renderPlaylists();
@@ -668,45 +695,51 @@ window.resetAllFilters = function() {
 };
 
 function setupEventListeners() {
-  // Tab switching in modal (Link vs Device Upload)
-  tabPasteUrl.addEventListener('click', () => {
-    state.activeMediaTab = 'url';
-    tabPasteUrl.classList.add('active');
-    tabUploadFile.classList.remove('active');
-    urlInputContainer.style.display = 'flex';
-    fileUploadContainer.style.display = 'none';
-  });
+  if (tabPasteUrl && tabUploadFile) {
+    tabPasteUrl.addEventListener('click', () => {
+      state.activeMediaTab = 'url';
+      tabPasteUrl.classList.add('active');
+      tabUploadFile.classList.remove('active');
+      if (urlInputContainer) urlInputContainer.style.display = 'flex';
+      if (fileUploadContainer) fileUploadContainer.style.display = 'none';
+    });
 
-  tabUploadFile.addEventListener('click', () => {
-    state.activeMediaTab = 'file';
-    tabUploadFile.classList.add('active');
-    tabPasteUrl.classList.remove('active');
-    urlInputContainer.style.display = 'none';
-    fileUploadContainer.style.display = 'flex';
-  });
+    tabUploadFile.addEventListener('click', () => {
+      state.activeMediaTab = 'file';
+      tabUploadFile.classList.add('active');
+      tabPasteUrl.classList.remove('active');
+      if (urlInputContainer) urlInputContainer.style.display = 'none';
+      if (fileUploadContainer) fileUploadContainer.style.display = 'flex';
+    });
+  }
 
-  // Native file input listener
-  videoFileInput.addEventListener('change', (e) => {
-    if (e.target.files && e.target.files[0]) {
-      handleSelectedVideoFile(e.target.files[0]);
-    }
-  });
+  if (videoFileInput) {
+    videoFileInput.addEventListener('change', (e) => {
+      if (e.target.files && e.target.files[0]) {
+        handleSelectedVideoFile(e.target.files[0]);
+      }
+    });
+  }
 
   function handleSelectedVideoFile(file) {
     state.selectedVideoFile = file;
     const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
-    fileSelectedInfo.innerHTML = `✅ Selected Video: <strong>${file.name}</strong> (${sizeMb} MB)`;
-    fileSelectedInfo.style.display = 'block';
+    if (fileSelectedInfo) {
+      fileSelectedInfo.innerHTML = `✅ Selected Video: <strong>${file.name}</strong> (${sizeMb} MB)`;
+      fileSelectedInfo.style.display = 'block';
+    }
   }
 
-  categoryTabs.addEventListener('click', (e) => {
-    const btn = e.target.closest('.tab-btn');
-    if (!btn) return;
-    state.activeCategory = btn.dataset.category;
-    state.activePlaylistFilter = null;
-    renderCategoryTabs();
-    renderClips();
-  });
+  if (categoryTabs) {
+    categoryTabs.addEventListener('click', (e) => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      state.activeCategory = btn.dataset.category;
+      state.activePlaylistFilter = null;
+      renderCategoryTabs();
+      renderClips();
+    });
+  }
 
   document.querySelectorAll('.pill-filter').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -717,270 +750,307 @@ function setupEventListeners() {
     });
   });
 
-  searchInput.addEventListener('input', (e) => {
-    state.searchQuery = e.target.value;
-    renderClips();
-  });
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      state.searchQuery = e.target.value;
+      renderClips();
+    });
+  }
 
-  ageGroupSelect.addEventListener('change', (e) => {
-    state.activeAgeGroup = e.target.value;
-    renderClips();
-  });
+  if (ageGroupSelect) {
+    ageGroupSelect.addEventListener('change', (e) => {
+      state.activeAgeGroup = e.target.value;
+      renderClips();
+    });
+  }
 
-  positionSelect.addEventListener('change', (e) => {
-    state.activePosition = e.target.value;
-    renderClips();
-  });
+  if (positionSelect) {
+    positionSelect.addEventListener('change', (e) => {
+      state.activePosition = e.target.value;
+      renderClips();
+    });
+  }
 
-  platformSelect.addEventListener('change', (e) => {
-    state.activePlatform = e.target.value;
-    renderClips();
-  });
+  if (platformSelect) {
+    platformSelect.addEventListener('change', (e) => {
+      state.activePlatform = e.target.value;
+      renderClips();
+    });
+  }
 
-  sortSelect.addEventListener('change', (e) => {
-    state.sortBy = e.target.value;
-    renderClips();
-  });
+  if (sortSelect) {
+    sortSelect.addEventListener('change', (e) => {
+      state.sortBy = e.target.value;
+      renderClips();
+    });
+  }
 
-  resetFiltersBtn.addEventListener('click', window.resetAllFilters);
+  if (resetFiltersBtn) {
+    resetFiltersBtn.addEventListener('click', window.resetAllFilters);
+  }
 
-  openSavedBtn.addEventListener('click', () => {
-    state.showOnlySaved = !state.showOnlySaved;
-    state.activePlaylistFilter = null;
-    if (state.showOnlySaved) {
-      openSavedBtn.classList.add('btn-primary');
-      openSavedBtn.classList.remove('btn-secondary');
-    } else {
-      openSavedBtn.classList.remove('btn-primary');
-      openSavedBtn.classList.add('btn-secondary');
-    }
-    renderClips();
-  });
-
-  openPlaylistsBtn.addEventListener('click', () => {
-    document.getElementById('playlistsWidget').scrollIntoView({ behavior: 'smooth' });
-  });
-
-  closePlayerModal.addEventListener('click', () => {
-    playerModal.classList.remove('active');
-    videoEmbedWrapper.innerHTML = '';
-  });
-
-  playerModal.addEventListener('click', (e) => {
-    if (e.target === playerModal) {
-      playerModal.classList.remove('active');
-      videoEmbedWrapper.innerHTML = '';
-    }
-  });
-
-  modalUpvoteBtn.addEventListener('click', () => {
-    if (state.currentModalClipId) {
-      window.upvoteClip(state.currentModalClipId);
-    }
-  });
-
-  modalSaveBtn.addEventListener('click', () => {
-    if (state.currentModalClipId) {
-      window.toggleSaveClip(state.currentModalClipId);
-    }
-  });
-
-  commentForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const clip = state.clips.find(c => c.id === state.currentModalClipId);
-    if (!clip) return;
-
-    const author = document.getElementById('commentNameInput').value.trim();
-    const text = document.getElementById('commentTextInput').value.trim();
-
-    if (author && text) {
-      const commentObj = {
-        id: 'c_' + Date.now(),
-        author: author,
-        text: text,
-        timestamp: 'Just now'
-      };
-
-      if (!clip.comments) clip.comments = [];
-      clip.comments.unshift(commentObj);
-
-      if (isConfigured) {
-        await addCommentToCloud(state.currentModalClipId, commentObj);
+  if (openSavedBtn) {
+    openSavedBtn.addEventListener('click', () => {
+      state.showOnlySaved = !state.showOnlySaved;
+      state.activePlaylistFilter = null;
+      if (state.showOnlySaved) {
+        openSavedBtn.classList.add('btn-primary');
+        openSavedBtn.classList.remove('btn-secondary');
       } else {
-        saveClipsToStorage();
-        renderModalComments(clip);
+        openSavedBtn.classList.remove('btn-primary');
+        openSavedBtn.classList.add('btn-secondary');
       }
+      renderClips();
+    });
+  }
 
-      document.getElementById('commentTextInput').value = '';
-    }
-  });
+  if (openPlaylistsBtn) {
+    openPlaylistsBtn.addEventListener('click', () => {
+      const pw = document.getElementById('playlistsWidget');
+      if (pw) pw.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
 
-  openAddModalBtn.addEventListener('click', () => addModal.classList.add('active'));
-  closeAddModal.addEventListener('click', () => addModal.classList.remove('active'));
-  cancelAddBtn.addEventListener('click', () => addModal.classList.remove('active'));
-
-  addModal.addEventListener('click', (e) => {
-    if (e.target === addModal) addModal.classList.remove('active');
-  });
-
-  addClipForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const title = document.getElementById('clipTitleInput').value.trim();
-    const checkedAgeBoxes = Array.from(document.querySelectorAll('input[name="clipAgeCheck"]:checked')).map(cb => cb.value);
-    const ageGroups = checkedAgeBoxes.length > 0 ? checkedAgeBoxes : ['u14'];
-    const ageCategories = Array.from(new Set(ageGroups.map(ag => getAgeCategoryFromId(ag))));
-
-    const category = document.getElementById('clipCategoryInput').value;
-    const author = document.getElementById('clipAuthorInput').value.trim();
-    const position = document.getElementById('clipPositionInput').value;
-    const rawTags = document.getElementById('clipTagsInput').value.trim();
-    const description = document.getElementById('clipDescInput').value.trim();
-    const rawPoints = document.getElementById('clipPointsInput').value.trim();
-
-    let videoUrl = '';
-    let platform = 'youtube';
-    let embedId = '';
-    let isShort = false;
-    let thumbnail = 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80';
-
-    if (state.activeMediaTab === 'file') {
-      if (!state.selectedVideoFile) {
-        alert("Please tap 'Choose Video File from Phone' to select your pitch recording.");
-        return;
-      }
-
-      submitClipBtn.disabled = true;
-      submitClipBtn.textContent = '⏳ Processing Pitch Video...';
-      uploadProgressContainer.style.display = 'block';
-
-      try {
-        videoUrl = await uploadVideoFileToCloud(state.selectedVideoFile, (progress) => {
-          const p = Math.round(progress);
-          uploadProgressBar.style.width = p + '%';
-          uploadProgressText.textContent = `Processing ${p}%`;
-        });
-        platform = 'uploaded';
-      } catch (err) {
-        console.warn("Storage processing fallback:", err);
-        const reader = new FileReader();
-        videoUrl = await new Promise(res => {
-          reader.onload = e => res(e.target.result);
-          reader.readAsDataURL(state.selectedVideoFile);
-        });
-        platform = 'uploaded';
-      }
-    } else {
-      const rawUrl = document.getElementById('clipUrlInput').value.trim();
-      if (!rawUrl) {
-        alert("Please enter a valid video URL.");
-        return;
-      }
-      videoUrl = rawUrl;
-      const parsed = parseMediaUrl(rawUrl);
-      platform = parsed.platform;
-      embedId = parsed.embedId;
-      isShort = parsed.isShort;
-      thumbnail = parsed.thumbnail;
-    }
-
-    const tagsArr = rawTags ? rawTags.split(',').map(t => {
-      let trimmed = t.trim();
-      if (!trimmed.startsWith('#')) trimmed = '#' + trimmed;
-      return trimmed;
-    }) : ageGroups.map(ag => `#${ag}`);
-
-    const pointsArr = rawPoints ? rawPoints.split('\n').filter(p => p.trim()) : [];
-
-    const newClip = sanitizeClip({
-      id: 'clip-' + Date.now(),
-      title,
-      description: description || 'Pitch-side rugby video shared to Malleny Park vault.',
-      platform,
-      url: videoUrl,
-      embedId,
-      isShort,
-      thumbnail,
-      category,
-      level: ageCategories.includes('minis') ? 'beginner' : ageCategories.includes('youth') ? 'intermediate' : 'advanced',
-      ageGroups,
-      ageCategories,
-      positions: [position],
-      tags: tagsArr,
-      author,
-      authorRole: 'Coach / Player',
-      upvotes: 1,
-      duration: 'Pitch Video 📱',
-      coachingPoints: pointsArr,
-      comments: [],
-      dateAdded: new Date().toISOString().split('T')[0]
+  if (closePlayerModal && playerModal) {
+    closePlayerModal.addEventListener('click', () => {
+      playerModal.classList.remove('active');
+      if (videoEmbedWrapper) videoEmbedWrapper.innerHTML = '';
     });
 
-    // 1. AUTO-RESET ALL ACTIVE FILTERS
-    state.activeCategory = 'all';
-    state.activePosition = 'all';
-    state.activeAgeGroup = 'all';
-    state.activeSquadSection = 'all';
-    state.activePlatform = 'all';
-    state.searchQuery = '';
-    state.activePlaylistFilter = null;
-    state.showOnlySaved = false;
-
-    searchInput.value = '';
-    ageGroupSelect.value = 'all';
-    positionSelect.value = 'all';
-    platformSelect.value = 'all';
-    sortSelect.value = 'newest';
-
-    document.querySelectorAll('.pill-filter').forEach(btn => btn.classList.remove('active'));
-    const allPill = document.querySelector('.pill-filter[data-squad="all"]');
-    if (allPill) allPill.classList.add('active');
-    renderCategoryTabs();
-
-    // 2. Add to local clips array & render
-    state.clips.unshift(newClip);
-    saveClipsToStorage();
-    updateStats();
-    renderClips();
-
-    if (isConfigured) {
-      addClipToCloud(newClip).catch(err => console.error("Firestore cloud add error:", err));
-    }
-
-    // 3. Success Feedback & Auto-close modal after 800ms
-    submitClipBtn.textContent = '✅ Success! Video Added';
-    submitClipBtn.style.background = '#10b981';
-
-    setTimeout(() => {
-      addClipForm.reset();
-      submitClipBtn.disabled = false;
-      submitClipBtn.textContent = '➕ Share to Vault';
-      submitClipBtn.style.background = '';
-      uploadProgressContainer.style.display = 'none';
-      fileSelectedInfo.style.display = 'none';
-      state.selectedVideoFile = null;
-      renderFormAgeCheckboxes();
-      addModal.classList.remove('active');
-      window.openClipModal(newClip.id);
-    }, 800);
-  });
-
-  spinChallengeBtn.addEventListener('click', () => {
-    spinChallengeBtn.disabled = true;
-    challengeOutput.textContent = '🎲 Spinning the challenge wheel...';
-
-    let count = 0;
-    const interval = setInterval(() => {
-      const randomMsg = DAILY_CHALLENGES[Math.floor(Math.random() * DAILY_CHALLENGES.length)];
-      challengeOutput.innerHTML = randomMsg;
-      count++;
-
-      if (count >= 10) {
-        clearInterval(interval);
-        spinChallengeBtn.disabled = false;
+    playerModal.addEventListener('click', (e) => {
+      if (e.target === playerModal) {
+        playerModal.classList.remove('active');
+        if (videoEmbedWrapper) videoEmbedWrapper.innerHTML = '';
       }
-    }, 100);
-  });
+    });
+  }
+
+  if (modalUpvoteBtn) {
+    modalUpvoteBtn.addEventListener('click', () => {
+      if (state.currentModalClipId) {
+        window.upvoteClip(state.currentModalClipId);
+      }
+    });
+  }
+
+  if (modalSaveBtn) {
+    modalSaveBtn.addEventListener('click', () => {
+      if (state.currentModalClipId) {
+        window.toggleSaveClip(state.currentModalClipId);
+      }
+    });
+  }
+
+  if (commentForm) {
+    commentForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const clip = state.clips.find(c => c.id === state.currentModalClipId);
+      if (!clip) return;
+
+      const author = document.getElementById('commentNameInput').value.trim();
+      const text = document.getElementById('commentTextInput').value.trim();
+
+      if (author && text) {
+        const commentObj = {
+          id: 'c_' + Date.now(),
+          author: author,
+          text: text,
+          timestamp: 'Just now'
+        };
+
+        if (!clip.comments) clip.comments = [];
+        clip.comments.unshift(commentObj);
+
+        if (isConfigured) {
+          await addCommentToCloud(state.currentModalClipId, commentObj);
+        } else {
+          saveClipsToStorage();
+          renderModalComments(clip);
+        }
+
+        document.getElementById('commentTextInput').value = '';
+      }
+    });
+  }
+
+  if (openAddModalBtn && addModal) {
+    openAddModalBtn.addEventListener('click', () => addModal.classList.add('active'));
+    if (closeAddModal) closeAddModal.addEventListener('click', () => addModal.classList.remove('active'));
+    if (cancelAddBtn) cancelAddBtn.addEventListener('click', () => addModal.classList.remove('active'));
+
+    addModal.addEventListener('click', (e) => {
+      if (e.target === addModal) addModal.classList.remove('active');
+    });
+  }
+
+  if (addClipForm) {
+    addClipForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const title = document.getElementById('clipTitleInput').value.trim();
+      const checkedAgeBoxes = Array.from(document.querySelectorAll('input[name="clipAgeCheck"]:checked')).map(cb => cb.value);
+      const ageGroups = checkedAgeBoxes.length > 0 ? checkedAgeBoxes : ['u14'];
+      const ageCategories = Array.from(new Set(ageGroups.map(ag => getAgeCategoryFromId(ag))));
+
+      const category = document.getElementById('clipCategoryInput').value;
+      const author = document.getElementById('clipAuthorInput').value.trim();
+      const position = document.getElementById('clipPositionInput').value;
+      const rawTags = document.getElementById('clipTagsInput').value.trim();
+      const description = document.getElementById('clipDescInput').value.trim();
+      const rawPoints = document.getElementById('clipPointsInput').value.trim();
+
+      let videoUrl = '';
+      let platform = 'youtube';
+      let embedId = '';
+      let isShort = false;
+      let thumbnail = 'https://images.unsplash.com/photo-1544698310-74ea9d1c8258?auto=format&fit=crop&w=800&q=80';
+
+      if (state.activeMediaTab === 'file') {
+        if (!state.selectedVideoFile) {
+          alert("Please tap 'Choose Video File from Phone' to select your pitch recording.");
+          return;
+        }
+
+        if (submitClipBtn) {
+          submitClipBtn.disabled = true;
+          submitClipBtn.textContent = '⏳ Processing Pitch Video...';
+        }
+        if (uploadProgressContainer) uploadProgressContainer.style.display = 'block';
+
+        try {
+          videoUrl = await uploadVideoFileToCloud(state.selectedVideoFile, (progress) => {
+            const p = Math.round(progress);
+            if (uploadProgressBar) uploadProgressBar.style.width = p + '%';
+            if (uploadProgressText) uploadProgressText.textContent = `Processing ${p}%`;
+          });
+          platform = 'uploaded';
+        } catch (err) {
+          console.warn("Storage processing fallback:", err);
+          const reader = new FileReader();
+          videoUrl = await new Promise(res => {
+            reader.onload = e => res(e.target.result);
+            reader.readAsDataURL(state.selectedVideoFile);
+          });
+          platform = 'uploaded';
+        }
+      } else {
+        const rawUrl = document.getElementById('clipUrlInput').value.trim();
+        if (!rawUrl) {
+          alert("Please enter a valid video URL.");
+          return;
+        }
+        videoUrl = rawUrl;
+        const parsed = parseMediaUrl(rawUrl);
+        platform = parsed.platform;
+        embedId = parsed.embedId;
+        isShort = parsed.isShort;
+        thumbnail = parsed.thumbnail;
+      }
+
+      const tagsArr = rawTags ? rawTags.split(',').map(t => {
+        let trimmed = t.trim();
+        if (!trimmed.startsWith('#')) trimmed = '#' + trimmed;
+        return trimmed;
+      }) : ageGroups.map(ag => `#${ag}`);
+
+      const pointsArr = rawPoints ? rawPoints.split('\n').filter(p => p.trim()) : [];
+
+      const newClip = sanitizeClip({
+        id: 'clip-' + Date.now(),
+        title,
+        description: description || 'Pitch-side rugby video shared to Malleny Park vault.',
+        platform,
+        url: videoUrl,
+        embedId,
+        isShort,
+        thumbnail,
+        category,
+        level: ageCategories.includes('minis') ? 'beginner' : ageCategories.includes('youth') ? 'intermediate' : 'advanced',
+        ageGroups,
+        ageCategories,
+        positions: [position],
+        tags: tagsArr,
+        author,
+        authorRole: 'Coach / Player',
+        upvotes: 1,
+        duration: 'Pitch Video 📱',
+        coachingPoints: pointsArr,
+        comments: [],
+        dateAdded: new Date().toISOString().split('T')[0]
+      });
+
+      // 1. AUTO-RESET ALL ACTIVE FILTERS
+      state.activeCategory = 'all';
+      state.activePosition = 'all';
+      state.activeAgeGroup = 'all';
+      state.activeSquadSection = 'all';
+      state.activePlatform = 'all';
+      state.searchQuery = '';
+      state.activePlaylistFilter = null;
+      state.showOnlySaved = false;
+
+      if (searchInput) searchInput.value = '';
+      if (ageGroupSelect) ageGroupSelect.value = 'all';
+      if (positionSelect) positionSelect.value = 'all';
+      if (platformSelect) platformSelect.value = 'all';
+      if (sortSelect) sortSelect.value = 'newest';
+
+      document.querySelectorAll('.pill-filter').forEach(btn => btn.classList.remove('active'));
+      const allPill = document.querySelector('.pill-filter[data-squad="all"]');
+      if (allPill) allPill.classList.add('active');
+      renderCategoryTabs();
+
+      // 2. Add to local clips array & render
+      state.clips.unshift(newClip);
+      saveClipsToStorage();
+      updateStats();
+      renderClips();
+
+      if (isConfigured) {
+        addClipToCloud(newClip).catch(err => console.error("Firestore cloud add error:", err));
+      }
+
+      // 3. Success Feedback & Auto-close modal after 800ms
+      if (submitClipBtn) {
+        submitClipBtn.textContent = '✅ Success! Video Added';
+        submitClipBtn.style.background = '#10b981';
+      }
+
+      setTimeout(() => {
+        addClipForm.reset();
+        if (submitClipBtn) {
+          submitClipBtn.disabled = false;
+          submitClipBtn.textContent = '➕ Share to Vault';
+          submitClipBtn.style.background = '';
+        }
+        if (uploadProgressContainer) uploadProgressContainer.style.display = 'none';
+        if (fileSelectedInfo) fileSelectedInfo.style.display = 'none';
+        state.selectedVideoFile = null;
+        renderFormAgeCheckboxes();
+        if (addModal) addModal.classList.remove('active');
+        window.openClipModal(newClip.id);
+      }, 800);
+    });
+  }
+
+  if (spinChallengeBtn) {
+    spinChallengeBtn.addEventListener('click', () => {
+      spinChallengeBtn.disabled = true;
+      if (challengeOutput) challengeOutput.textContent = '🎲 Spinning the challenge wheel...';
+
+      let count = 0;
+      const interval = setInterval(() => {
+        const randomMsg = DAILY_CHALLENGES[Math.floor(Math.random() * DAILY_CHALLENGES.length)];
+        if (challengeOutput) challengeOutput.innerHTML = randomMsg;
+        count++;
+
+        if (count >= 10) {
+          clearInterval(interval);
+          spinChallengeBtn.disabled = false;
+        }
+      }, 100);
+    });
+  }
 }
 
 function parseMediaUrl(url) {
