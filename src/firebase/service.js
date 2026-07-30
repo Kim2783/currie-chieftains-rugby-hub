@@ -8,24 +8,23 @@ import {
   updateDoc, 
   increment, 
   arrayUnion, 
-  getDocs, 
-  query, 
-  orderBy 
+  getDocs
 } from 'firebase/firestore';
 
 const COLLECTION_NAME = 'clips';
 
-// Subscribe to real-time Firestore updates
+// Subscribe to real-time Firestore updates for ALL clips
 export function subscribeToClips(onDataChanged, onError) {
   if (!isConfigured || !db) return null;
 
   try {
-    const q = query(collection(db, COLLECTION_NAME), orderBy('dateAdded', 'desc'));
-    return onSnapshot(q, (snapshot) => {
+    const colRef = collection(db, COLLECTION_NAME);
+    return onSnapshot(colRef, (snapshot) => {
       const clips = snapshot.docs.map(docSnap => ({
         id: docSnap.id,
         ...docSnap.data()
       }));
+      console.log(`🔥 Received ${clips.length} live clips from Cloud Firestore!`);
       onDataChanged(clips);
     }, (error) => {
       console.error("Firestore onSnapshot error:", error);
@@ -43,6 +42,7 @@ export async function addClipToCloud(clip) {
   try {
     const docRef = doc(db, COLLECTION_NAME, clip.id);
     await setDoc(docRef, clip);
+    console.log(`🔥 Clip ${clip.id} successfully written to Firestore!`);
     return true;
   } catch (err) {
     console.error("Error adding clip to Firestore:", err);
@@ -50,12 +50,11 @@ export async function addClipToCloud(clip) {
   }
 }
 
-// Upload direct video file (MP4/MOV) with auto-CORS timeout fallback to local Blob
+// Upload direct video file (MP4/MOV) with auto-CORS timeout fallback
 export function uploadVideoFileToCloud(file, onProgress) {
   return new Promise((resolve, reject) => {
     let resolved = false;
 
-    // Fast fallback if Firebase isn't fully configured
     if (!isConfigured || !db) {
       console.log("Firebase not fully configured for Cloud Storage, using local blob");
       const localBlobUrl = URL.createObjectURL(file);
@@ -72,7 +71,7 @@ export function uploadVideoFileToCloud(file, onProgress) {
 
       const uploadTask = uploadBytesResumable(storageRef, file);
 
-      // Auto CORS timeout safeguard: If Storage bucket CORS hangs at 0% for > 3.5 seconds, auto-fallback to local Blob!
+      // Timeout safeguard: If Storage bucket CORS hangs at 0% for > 4.5 seconds, auto-fallback to local Blob
       const timeoutId = setTimeout(() => {
         if (!resolved && uploadTask.snapshot.bytesTransferred === 0) {
           console.warn("⚠️ Firebase Storage CORS timeout (stuck at 0%). Falling back to local Blob video player.");
@@ -82,7 +81,7 @@ export function uploadVideoFileToCloud(file, onProgress) {
           const localBlobUrl = URL.createObjectURL(file);
           resolve(localBlobUrl);
         }
-      }, 3500);
+      }, 4500);
 
       uploadTask.on(
         'state_changed',
@@ -94,7 +93,7 @@ export function uploadVideoFileToCloud(file, onProgress) {
         (error) => {
           if (resolved) return;
           clearTimeout(timeoutId);
-          console.warn("Storage upload error/CORS error:", error);
+          console.warn("Storage upload error:", error);
           resolved = true;
           if (onProgress) onProgress(100);
           const localBlobUrl = URL.createObjectURL(file);
