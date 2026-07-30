@@ -1,4 +1,5 @@
 import { db, isConfigured } from './config.js';
+import { getStorage, ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 import { 
   collection, 
   doc, 
@@ -47,6 +48,44 @@ export async function addClipToCloud(clip) {
     console.error("Error adding clip to Firestore:", err);
     return false;
   }
+}
+
+// Upload direct video file (MP4/MOV) to Firebase Storage
+export function uploadVideoFileToCloud(file, onProgress) {
+  return new Promise((resolve, reject) => {
+    if (!isConfigured || !db) {
+      reject(new Error("Firebase is not configured"));
+      return;
+    }
+
+    try {
+      const storage = getStorage();
+      const fileExt = file.name.split('.').pop() || 'mp4';
+      const fileName = `video_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const storageRef = ref(storage, `videos/${fileName}`);
+
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        'state_changed',
+        (snapshot) => {
+          const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+          if (onProgress) onProgress(progress);
+        },
+        (error) => {
+          console.error("Firebase Storage upload error:", error);
+          reject(error);
+        },
+        async () => {
+          const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+          resolve(downloadURL);
+        }
+      );
+    } catch (err) {
+      console.error("Upload error:", err);
+      reject(err);
+    }
+  });
 }
 
 // Upvote clip in Firestore (atomic increment)

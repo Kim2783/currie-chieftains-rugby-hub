@@ -419,6 +419,67 @@ body {
   background: rgba(245, 158, 11, 0.12);
 }
 
+/* Media Type Tabs in Form */
+.media-type-tabs {
+  display: flex;
+  gap: 0.5rem;
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  padding: 0.3rem;
+  border-radius: var(--radius-md);
+}
+
+.media-tab-btn {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.2s ease;
+}
+
+.media-tab-btn.active {
+  background: var(--bg-card-hover);
+  color: var(--color-gold);
+  border: 1px solid var(--border-gold);
+}
+
+/* File Dropzone */
+.file-dropzone {
+  border: 2px dashed var(--border-gold);
+  background: rgba(245, 158, 11, 0.05);
+  border-radius: var(--radius-md);
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.file-dropzone:hover, .file-dropzone.drag-over {
+  background: rgba(245, 158, 11, 0.15);
+  border-color: var(--color-gold);
+}
+
+.progress-bar-bg {
+  width: 100%;
+  height: 8px;
+  background: var(--bg-dark);
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid var(--border-color);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-gold) 0%, #10b981 100%);
+  transition: width 0.2s ease;
+}
+
 /* Multi-Select Checkboxes Grid for Age Levels in Form */
 .age-checkbox-grid {
   display: grid;
@@ -581,6 +642,9 @@ body {
 }
 .platform-instagram {
   background: linear-gradient(45deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+}
+.platform-uploaded {
+  background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
 }
 
 .card-duration {

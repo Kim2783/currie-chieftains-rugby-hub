@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Currie Chieftains RFC - Rugby Skill & Video Hub</title>
-  <meta name="description" content="Share, tag, search and analyze rugby skill videos, YouTube clips, and Instagram reels for Currie Chieftains RFC players, coaches, Minis (P1-P7), Youth (U13-U18), and Adult Rugby at Malleny Park.">
+  <meta name="description" content="Share, tag, search and analyze rugby skill videos, YouTube clips, Instagram reels, and direct MP4 pitch recordings for Currie Chieftains RFC players, coaches, Minis (P1-P7), Youth (U13-U18), and Adult Rugby at Malleny Park.">
   <link rel="icon" href="/logo.png" type="image/png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -49,7 +49,7 @@
         <div class="hero-tag">⚡ Malleny Park Training Vault</div>
         <h2 class="hero-title">Elevate Your Game The <span>Chieftains Way</span></h2>
         <p class="hero-desc">
-          Search, watch, and master top-tier rugby skills, set-piece analysis, and tackles tagged specifically for Minis (P1–P7), Youth (U13–U18), and Adult Rugby squads.
+          Search, watch, and master top-tier rugby skills, set-piece analysis, and pitch-side recordings tagged specifically for Minis (P1–P7), Youth (U13–U18), and Adult Rugby squads.
         </p>
 
         <div class="hero-stats">
@@ -97,6 +97,7 @@
           <option value="youtube">YouTube Videos</option>
           <option value="youtube-shorts">YouTube Shorts</option>
           <option value="instagram">Instagram Reels</option>
+          <option value="uploaded">Uploaded Video Files 📱</option>
         </select>
 
         <select id="sortSelect" class="select-box">
@@ -239,9 +240,34 @@
       </div>
 
       <form id="addClipForm" class="modal-body">
-        <div class="form-group">
+        
+        <!-- Tab Selector: Link vs Direct File Upload -->
+        <div class="media-type-tabs">
+          <button type="button" class="media-tab-btn active" id="tabPasteUrl">🔗 Paste YouTube / Instagram Link</button>
+          <button type="button" class="media-tab-btn" id="tabUploadFile">📱 Upload Video File (MP4 / MOV)</button>
+        </div>
+
+        <!-- Option A: Paste URL -->
+        <div id="urlInputContainer" class="form-group">
           <label for="clipUrlInput">Video / Post URL (YouTube link, Shorts, or Instagram reel)</label>
-          <input type="url" id="clipUrlInput" class="form-control" placeholder="https://www.youtube.com/watch?v=... or https://www.instagram.com/p/..." required>
+          <input type="url" id="clipUrlInput" class="form-control" placeholder="https://www.youtube.com/watch?v=... or https://www.instagram.com/p/...">
+        </div>
+
+        <!-- Option B: Upload Video File -->
+        <div id="fileUploadContainer" class="form-group" style="display: none;">
+          <label>Upload Video from phone or computer (MP4, MOV, WEBM)</label>
+          <div class="file-dropzone" id="dropzone">
+            <div style="font-size: 2.2rem; margin-bottom: 0.4rem;">📹</div>
+            <div style="font-weight: 700; color: #fff; font-size: 1rem;">Tap or Drag & Drop Video File</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">Upload pitch-side recording directly</div>
+            <input type="file" id="videoFileInput" accept="video/*" style="display: none;">
+          </div>
+          <div id="fileSelectedInfo" style="font-size: 0.85rem; color: var(--color-gold); font-weight: 700; margin-top: 0.4rem; display: none;"></div>
+          
+          <div id="uploadProgressContainer" style="display: none; margin-top: 0.5rem;">
+            <div class="progress-bar-bg"><div class="progress-bar-fill" id="uploadProgressBar" style="width: 0%;"></div></div>
+            <div id="uploadProgressText" style="font-size: 0.75rem; color: var(--text-muted); text-align: right; margin-top: 0.2rem;">Uploading 0%</div>
+          </div>
         </div>
 
         <div class="form-group">
@@ -317,7 +343,7 @@
 
         <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1rem;">
           <button type="button" class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
-          <button type="submit" class="btn btn-primary">➕ Share to Vault</button>
+          <button type="submit" class="btn btn-primary" id="submitClipBtn">➕ Share to Vault</button>
         </div>
       </form>
     </div>
