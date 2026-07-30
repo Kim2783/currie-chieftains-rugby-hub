@@ -66,7 +66,6 @@ const tabPasteUrl = document.getElementById('tabPasteUrl');
 const tabUploadFile = document.getElementById('tabUploadFile');
 const urlInputContainer = document.getElementById('urlInputContainer');
 const fileUploadContainer = document.getElementById('fileUploadContainer');
-const dropzone = document.getElementById('dropzone');
 const videoFileInput = document.getElementById('videoFileInput');
 const fileSelectedInfo = document.getElementById('fileSelectedInfo');
 const uploadProgressContainer = document.getElementById('uploadProgressContainer');
@@ -97,7 +96,9 @@ async function init() {
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      state.clips = cloudClips;
+      // Merge cloud clips with any local temporary uploads
+      const localOnly = state.clips.filter(c => c.platform === 'uploaded' && !cloudClips.some(cc => cc.id === c.id));
+      state.clips = [...localOnly, ...cloudClips];
       updateStats();
       renderClips();
       if (state.currentModalClipId) {
@@ -120,11 +121,11 @@ function updateCloudStatusBadge(active) {
   const heroTag = document.querySelector('.hero-tag');
   if (heroTag) {
     if (active) {
-      heroTag.innerHTML = `🔥 Malleny Park Training Vault • <strong>Firebase Cloud Storage Active</strong>`;
+      heroTag.innerHTML = `🔥 Malleny Park Vault • <strong>Live Sync Active</strong>`;
       heroTag.style.borderColor = '#10b981';
       heroTag.style.color = '#34d399';
     } else {
-      heroTag.innerHTML = `⚡ Malleny Park Training Vault • Direct Device Upload Mode`;
+      heroTag.innerHTML = `⚡ Malleny Park Vault • Direct Device Mode`;
     }
   }
 }
@@ -714,7 +715,7 @@ function setupEventListeners() {
       }
 
       submitClipBtn.disabled = true;
-      submitClipBtn.textContent = '⏳ Uploading Video...';
+      submitClipBtn.textContent = '⏳ Processing Pitch Video...';
       uploadProgressContainer.style.display = 'block';
 
       try {
@@ -722,16 +723,16 @@ function setupEventListeners() {
           videoUrl = await uploadVideoFileToCloud(state.selectedVideoFile, (progress) => {
             const p = Math.round(progress);
             uploadProgressBar.style.width = p + '%';
-            uploadProgressText.textContent = `Uploading ${p}%`;
+            uploadProgressText.textContent = `Processing ${p}%`;
           });
         } else {
           videoUrl = URL.createObjectURL(state.selectedVideoFile);
           uploadProgressBar.style.width = '100%';
-          uploadProgressText.textContent = 'Ready (Local Preview)';
+          uploadProgressText.textContent = 'Ready (Local Mode)';
         }
         platform = 'uploaded';
       } catch (err) {
-        console.warn("Cloud Storage upload failed, creating instant local preview:", err);
+        console.warn("Storage processing fallback:", err);
         videoUrl = URL.createObjectURL(state.selectedVideoFile);
         platform = 'uploaded';
       }
@@ -781,25 +782,32 @@ function setupEventListeners() {
       dateAdded: new Date().toISOString().split('T')[0]
     };
 
+    // Immediate local UI update
+    state.clips.unshift(newClip);
+    saveClipsToStorage();
+    updateStats();
+    renderClips();
+
     if (isConfigured) {
-      await addClipToCloud(newClip);
-    } else {
-      state.clips.unshift(newClip);
-      saveClipsToStorage();
-      updateStats();
-      renderClips();
+      addClipToCloud(newClip).catch(err => console.error("Firestore cloud add error:", err));
     }
 
-    // Reset Form & UI state
-    addClipForm.reset();
-    submitClipBtn.disabled = false;
-    submitClipBtn.textContent = '➕ Share to Vault';
-    uploadProgressContainer.style.display = 'none';
-    fileSelectedInfo.style.display = 'none';
-    state.selectedVideoFile = null;
-    renderFormAgeCheckboxes();
-    addModal.classList.remove('active');
-    window.openClipModal(newClip.id);
+    // Success Feedback & Auto-close modal after 800ms
+    submitClipBtn.textContent = '✅ Success! Video Added';
+    submitClipBtn.style.background = '#10b981';
+
+    setTimeout(() => {
+      addClipForm.reset();
+      submitClipBtn.disabled = false;
+      submitClipBtn.textContent = '➕ Share to Vault';
+      submitClipBtn.style.background = '';
+      uploadProgressContainer.style.display = 'none';
+      fileSelectedInfo.style.display = 'none';
+      state.selectedVideoFile = null;
+      renderFormAgeCheckboxes();
+      addModal.classList.remove('active');
+      window.openClipModal(newClip.id);
+    }, 800);
   });
 
   spinChallengeBtn.addEventListener('click', () => {
