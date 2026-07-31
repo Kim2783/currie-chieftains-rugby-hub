@@ -332,7 +332,7 @@ function renderFormAgeCheckboxes() {
   if (!clipAgeCheckboxes) return;
   clipAgeCheckboxes.innerHTML = SCOTTISH_AGE_GROUPS.map(ag => `
     <label class="age-checkbox-tile">
-      <input type="checkbox" name="clipAgeCheck" value="${ag.id}" ${ag.id === 'u14' ? 'checked' : ''}>
+      <input type="checkbox" name="clipAgeCheck" value="${ag.id}">
       <span>${ag.name}</span>
     </label>
   `).join('');
