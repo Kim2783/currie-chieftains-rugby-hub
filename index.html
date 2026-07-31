@@ -347,7 +347,52 @@
           <button type="button" class="btn btn-secondary" id="cancelAddBtn">Cancel</button>
           <button type="submit" class="btn btn-primary" id="submitClipBtn">➕ Share to Vault</button>
         </div>
+
+        <p style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.75rem; text-align: center;">
+          By sharing, you agree to the <a href="#" id="linkFormPolicy" style="color: var(--color-gold); text-decoration: underline;">Currie Chieftains Fair Use & Safeguarding Policy</a>.
+        </p>
       </form>
+    </div>
+  </div>
+
+  <!-- Fair Use & Safeguarding Policy Modal -->
+  <div class="modal-overlay" id="policyModal">
+    <div class="modal-content" style="max-width: 650px;">
+      <div class="modal-header">
+        <h2>📜 Fair Use & Safeguarding Policy</h2>
+        <button class="close-modal-btn" id="closePolicyModal">&times;</button>
+      </div>
+      <div class="modal-body" style="line-height: 1.6; font-size: 0.9rem; color: var(--text-main);">
+        <div style="background: rgba(245, 158, 11, 0.1); border: 1px solid var(--border-gold); padding: 0.85rem 1rem; border-radius: var(--radius-md); font-weight: 600; color: var(--color-gold-light);">
+          🏉 Currie Chieftains RFC • Educational & Training Use Only
+        </div>
+
+        <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-top: 0.5rem;">1. Purpose & Educational Use</h3>
+        <p>
+          The Currie Chieftains Skill Vault is a non-commercial educational resource created exclusively for player development, coaching feedback, and tactical analysis for Currie Chieftains RFC squads (Minis, Youth, and Adult Rugby).
+        </p>
+
+        <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-top: 0.5rem;">2. Youth Safeguarding & Privacy</h3>
+        <p>
+          • Pitch footage featuring Minis (P1–P7) or Youth (U13–U18) players must be filmed in open, official training or match environments at Malleny Park or away fixtures.<br>
+          • Filming in changing rooms, medical areas, or private spaces is strictly prohibited.<br>
+          • Respect player privacy; content will be removed immediately upon request by any parent, guardian, or club officer.
+        </p>
+
+        <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-top: 0.5rem;">3. Positive Community Guidelines</h3>
+        <p>
+          All comments, coaching notes, and feedback posted in the vault must remain positive, respectful, and encouraging for players of all age levels.
+        </p>
+
+        <h3 style="font-size: 1rem; font-weight: 700; color: #fff; margin-top: 0.5rem;">4. Copyright & Fair Dealing</h3>
+        <p>
+          Embedded YouTube videos and Instagram reels shared in the vault remain the property of their original creators. Content is embedded under fair dealing for non-commercial educational use.
+        </p>
+
+        <div style="text-align: center; margin-top: 1rem;">
+          <button class="btn btn-primary" id="closePolicyBtn">I Understand & Agree</button>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -359,7 +404,12 @@
         <span style="font-weight: 700; color: #ffffff;">Currie Chieftains RFC • Malleny Park, Balerno</span>
       </div>
       <div>Minis (P1–P7) • Youth (U13–U18) • Adult Rugby (Seniors & Vets) Skill Vault</div>
-      <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.5rem;">
+      <div style="margin-top: 0.25rem;">
+        <button class="btn btn-ghost" id="openPolicyBtn" style="font-size: 0.8rem; color: var(--color-gold);">
+          📜 Fair Use & Safeguarding Policy
+        </button>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--text-dim); margin-top: 0.25rem;">
         Created for Currie Chieftains players, coaches & supporters.
       </div>
     </div>

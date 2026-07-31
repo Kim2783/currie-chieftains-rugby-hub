@@ -1085,6 +1085,28 @@ function setupEventListeners() {
     });
   }
 
+  // Fair Use & Safeguarding Policy Modal Event Listeners
+  const policyModal = document.getElementById('policyModal');
+  const openPolicyBtn = document.getElementById('openPolicyBtn');
+  const closePolicyModal = document.getElementById('closePolicyModal');
+  const closePolicyBtn = document.getElementById('closePolicyBtn');
+  const linkFormPolicy = document.getElementById('linkFormPolicy');
+
+  if (policyModal) {
+    if (openPolicyBtn) openPolicyBtn.addEventListener('click', () => policyModal.classList.add('active'));
+    if (linkFormPolicy) {
+      linkFormPolicy.addEventListener('click', (e) => {
+        e.preventDefault();
+        policyModal.classList.add('active');
+      });
+    }
+    if (closePolicyModal) closePolicyModal.addEventListener('click', () => policyModal.classList.remove('active'));
+    if (closePolicyBtn) closePolicyBtn.addEventListener('click', () => policyModal.classList.remove('active'));
+    policyModal.addEventListener('click', (e) => {
+      if (e.target === policyModal) policyModal.classList.remove('active');
+    });
+  }
+
   if (spinChallengeBtn) {
     spinChallengeBtn.addEventListener('click', () => {
       spinChallengeBtn.disabled = true;
