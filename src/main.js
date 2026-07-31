@@ -465,7 +465,7 @@ function renderClips() {
               <span style="font-weight: 600; font-size: 0.8rem;">👤 ${clip.author}</span>
               
               <div style="display: flex; gap: 0.5rem; align-items: center;">
-                <button class="resp-btn" onclick="event.stopPropagation(); window.upvoteClip('${clip.id}')" title="Give Rugby Resps">
+                <button class="resp-btn" onclick="event.stopPropagation(); window.upvoteClip('${clip.id}')" title="Upvote this skill clip">
                   🏉 ${clip.upvotes || 0}
                 </button>
 

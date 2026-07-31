@@ -43,33 +43,19 @@
   <!-- Main Content Layout -->
   <main class="main-layout">
     
-    <!-- Hero Banner -->
+    <!-- Hero Banner (Streamlined) -->
     <section class="hero-banner">
       <div class="hero-content">
-        <div class="hero-tag">⚡ Malleny Park Training Vault</div>
-        <h2 class="hero-title">Elevate Your Game The <span>Chieftains Way</span></h2>
-        <p class="hero-desc">
-          Search, watch, and master top-tier rugby skills, set-piece analysis, and pitch-side recordings tagged specifically for Minis (P1–P7), Youth (U13–U18), and Adult Rugby squads.
-        </p>
-
-        <div class="hero-stats">
-          <div class="stat-item">
-            <span class="stat-value" id="statTotalClips">0</span>
-            <span class="stat-label">Rugby Clips</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">3</span>
-            <span class="stat-label">Sections (Minis, Youth, Adult)</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value">13</span>
-            <span class="stat-label">Positional Groups</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-value" id="statTotalUpvotes">0</span>
-            <span class="stat-label">Rugby Resps 🏉</span>
+        <div style="display: flex; gap: 0.6rem; align-items: center; flex-wrap: wrap; margin-bottom: 0.6rem;">
+          <div class="hero-tag">🔥 Malleny Park Vault</div>
+          <div class="hero-tag" style="background: rgba(16, 185, 129, 0.15); border-color: #10b981; color: #34d399;">
+            🏉 <span id="statTotalClips">0</span> Skill Clips
           </div>
         </div>
+        <h2 class="hero-title" style="font-size: 1.5rem; margin-bottom: 0.4rem;">Currie Chieftains <span>Rugby Skill Vault</span></h2>
+        <p class="hero-desc" style="margin-bottom: 0.5rem; font-size: 0.875rem;">
+          Coaching videos, skill drills, and pitch recordings tagged for Minis (P1–P7), Youth (U13–U18), and Adult Rugby squads.
+        </p>
       </div>
     </section>
 
@@ -102,7 +88,7 @@
 
         <select id="sortSelect" class="select-box">
           <option value="newest">Latest Added</option>
-          <option value="upvotes">Most Upvoted 🏉</option>
+          <option value="upvotes">Most Upvoted 👍</option>
           <option value="title">Alphabetical</option>
         </select>
       </div>
@@ -196,7 +182,7 @@
 
           <div style="display: flex; gap: 0.75rem;">
             <button class="resp-btn" id="modalUpvoteBtn">
-              🏉 Give Resps (<span id="modalUpvotesCount">0</span>)
+              👍 Upvote (<span id="modalUpvotesCount">0</span>)
             </button>
             <button class="btn btn-secondary" id="modalSaveBtn" style="font-size: 0.8rem;">
               ⭐ Save to Bag
