@@ -232,26 +232,26 @@ export const INITIAL_CLIPS = [
 
 export const SCOTTISH_AGE_GROUPS = [
   // Minis Section (P1 - P7)
-  { id: "p1", name: "P1 Mini", category: "minis" },
-  { id: "p2", name: "P2 Mini", category: "minis" },
-  { id: "p3", name: "P3 Mini", category: "minis" },
-  { id: "p4", name: "P4 Mini", category: "minis" },
-  { id: "p5", name: "P5 Mini", category: "minis" },
-  { id: "p6", name: "P6 Mini", category: "minis" },
-  { id: "p7", name: "P7 Mini", category: "minis" },
+  { id: "p1", name: "P1", category: "minis" },
+  { id: "p2", name: "P2", category: "minis" },
+  { id: "p3", name: "P3", category: "minis" },
+  { id: "p4", name: "P4", category: "minis" },
+  { id: "p5", name: "P5", category: "minis" },
+  { id: "p6", name: "P6", category: "minis" },
+  { id: "p7", name: "P7", category: "minis" },
 
   // Youth Section (U13 - U18)
-  { id: "u13", name: "U13 Boys / Girls", category: "youth" },
-  { id: "u14", name: "U14 Boys / Girls", category: "youth" },
-  { id: "u15", name: "U15 Boys / Girls", category: "youth" },
-  { id: "u16", name: "U16 Boys / Girls", category: "youth" },
-  { id: "u18", name: "U18 Boys / Girls", category: "youth" },
+  { id: "u13", name: "U13", category: "youth" },
+  { id: "u14", name: "U14", category: "youth" },
+  { id: "u15", name: "U15", category: "youth" },
+  { id: "u16", name: "U16", category: "youth" },
+  { id: "u18", name: "U18", category: "youth" },
 
   // Adult Rugby Section
-  { id: "adult-1st", name: "1st XV (National League)", category: "adults" },
-  { id: "adult-2nd", name: "2nd XV / Chieftains A", category: "adults" },
-  { id: "adult-womens", name: "Women's Senior Squad", category: "adults" },
-  { id: "adult-vets", name: "Vets / Social Rugby", category: "adults" }
+  { id: "adult-1st", name: "1st XV", category: "adults" },
+  { id: "adult-2nd", name: "2nd XV", category: "adults" },
+  { id: "adult-womens", name: "Women's", category: "adults" },
+  { id: "adult-vets", name: "Vets", category: "adults" }
 ];
 
 export const SKILL_CATEGORIES = [
