@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "currie-chieftains-rugby-hub"
+    "default": "currie-chieftains-rugby-hub",
+    "production": "YOUR_PRODUCTION_PROJECT_ID"
   }
 }

@@ -9,3 +9,6 @@ dist
 # Logs & temp
 *.log
 .DS_Store
+
+# Environment files overrides (should not be committed to GitHub)
+.env*.local

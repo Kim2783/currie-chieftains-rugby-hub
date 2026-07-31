@@ -2,15 +2,15 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 
-// Currie Chieftains Firebase Project Credentials
+// Currie Chieftains Firebase Project Credentials (loaded dynamically from environment)
 export const firebaseConfig = {
-  apiKey: "AIzaSyCwdl4HvDH0j7y2dCTRiVqoc0Bk9DmPBiM",
-  authDomain: "currie-chieftains-rugby-hub.firebaseapp.com",
-  projectId: "currie-chieftains-rugby-hub",
-  storageBucket: "currie-chieftains-rugby-hub.firebasestorage.app",
-  messagingSenderId: "1046273883340",
-  appId: "1:1046273883340:web:880a1e673d171550019669",
-  measurementId: "G-ERBHXXEKS0"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 let app = null;
