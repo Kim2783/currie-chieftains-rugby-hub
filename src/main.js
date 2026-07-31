@@ -173,9 +173,17 @@ async function init() {
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      const sanitizedCloud = (cloudClips || []).map(sanitizeClip).filter(Boolean);
+      // Filter out original clip-1 through clip-8 holding clips
+      const sanitizedCloud = (cloudClips || [])
+        .map(sanitizeClip)
+        .filter(Boolean)
+        .filter(c => !/^clip-[1-8]$/.test(c.id));
 
-      const localClips = getStoredLocalClips().map(sanitizeClip).filter(Boolean);
+      const localClips = getStoredLocalClips()
+        .map(sanitizeClip)
+        .filter(Boolean)
+        .filter(c => !/^clip-[1-8]$/.test(c.id));
+
       localClips.forEach(lc => {
         if (!sanitizedCloud.some(cc => cc.id === lc.id)) {
           console.log("🔥 Auto-syncing local clip to Cloud Firestore:", lc.title);
@@ -244,17 +252,13 @@ function loadLocalStorageClips() {
     const storedClips = localStorage.getItem(STORAGE_KEY_CLIPS);
     if (storedClips) {
       const parsed = JSON.parse(storedClips).map(sanitizeClip).filter(Boolean);
-      const map = new Map();
-      INITIAL_CLIPS.forEach(c => map.set(c.id, sanitizeClip(c)));
-      parsed.forEach(c => map.set(c.id, c));
-      state.clips = Array.from(map.values());
+      state.clips = parsed.filter(c => !/^clip-[1-8]$/.test(c.id));
     } else {
-      state.clips = INITIAL_CLIPS.map(sanitizeClip);
-      saveClipsToStorage();
+      state.clips = [];
     }
   } catch (err) {
     console.error('LocalStorage load error:', err);
-    state.clips = INITIAL_CLIPS.map(sanitizeClip);
+    state.clips = [];
   }
 }
 
