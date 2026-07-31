@@ -67,27 +67,43 @@ export const RUGBY_EQUIPMENT = [
 
 export const CHIEFTAINS_PLAYLISTS = [
   {
-    id: "pl-minis",
-    title: "Currie Minis (P1 - P7) Fun & Safe Contact",
-    description: "Fundamental movement, P4/P5 safe tackle entry, and team passing games for Malleny Park Minis.",
-    clipCount: 2,
-    clipIds: ["clip-1", "clip-5"],
-    bannerColor: "from-green-700 to-emerald-900"
+    id: "pl-minis-p13",
+    title: "Currie Minis (P1 - P3) Fun & Movement",
+    description: "Fundamental movement, tag rugby games, coordination drills, and active play for P1-P3.",
+    clipCount: 0,
+    clipIds: [],
+    bannerColor: "from-emerald-700 to-green-900"
+  },
+  {
+    id: "pl-minis-p45",
+    title: "Currie Minis (P4 - P5) Safe Contact Intro",
+    description: "Introduction to safe tackle entry, falling techniques, and building confidence in 1v1 contact.",
+    clipCount: 0,
+    clipIds: [],
+    bannerColor: "from-green-600 to-emerald-800"
+  },
+  {
+    id: "pl-minis-p67",
+    title: "Currie Minis (P6 - P7) Foundation Phase",
+    description: "Play Fast - Keep Ball Alive (KBA). Catch & pass early, evasion/offloading, and tackle completion.",
+    clipCount: 0,
+    clipIds: [],
+    bannerColor: "from-teal-700 to-emerald-950"
   },
   {
     id: "pl-youth",
     title: "Chieftains Youth (U13 - U18) Development",
     description: "Spiral passing off both hands, lineout throw precision, box kicking, and scrum power.",
-    clipCount: 4,
-    clipIds: ["clip-1", "clip-3", "clip-4", "clip-6"],
+    clipCount: 0,
+    clipIds: [],
     bannerColor: "from-amber-600 to-amber-900"
   },
   {
     id: "pl-adults",
     title: "Adult Rugby (Seniors & Vets) Tactical System",
     description: "Low chop tackle & jackal clearout combined with midfield dummy switch attack patterns.",
-    clipCount: 2,
-    clipIds: ["clip-2", "clip-7"],
+    clipCount: 0,
+    clipIds: [],
     bannerColor: "from-slate-800 to-black"
   }
 ];

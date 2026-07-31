@@ -351,6 +351,29 @@ function renderFormAgeCheckboxes() {
   `).join('');
 }
 
+function isClipInPlaylist(clip, playlistId) {
+  if (!clip) return false;
+  const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+  const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
+
+  if (playlistId === 'pl-minis-p13') {
+    return clipAges.some(a => a === 'p1' || a === 'p2' || a === 'p3');
+  }
+  if (playlistId === 'pl-minis-p45') {
+    return clipAges.some(a => a === 'p4' || a === 'p5');
+  }
+  if (playlistId === 'pl-minis-p67') {
+    return clipAges.some(a => a === 'p6' || a === 'p7');
+  }
+  if (playlistId === 'pl-youth') {
+    return clipCats.includes('youth') || clipAges.some(a => getAgeCategoryFromId(a) === 'youth');
+  }
+  if (playlistId === 'pl-adults') {
+    return clipCats.includes('adults') || clipAges.some(a => getAgeCategoryFromId(a) === 'adults');
+  }
+  return false;
+}
+
 function getFilteredClips() {
   return state.clips.filter(clip => {
     if (!clip) return false;
@@ -372,19 +395,9 @@ function getFilteredClips() {
       if (!matchTitle && !matchDesc && !matchAuthor && !matchTags && !matchAge && !matchEquip) return false;
     }
 
-    // Playlist filter (dynamically mapped by squad sections)
+    // Playlist filter
     if (state.activePlaylistFilter) {
-      const PLAYLIST_TARGETS = {
-        'pl-minis': 'minis',
-        'pl-youth': 'youth',
-        'pl-adults': 'adults'
-      };
-      const targetCategory = PLAYLIST_TARGETS[state.activePlaylistFilter];
-      if (targetCategory) {
-        const hasSquadCategory = clipCats.includes(targetCategory) ||
-          clipAges.some(a => getAgeCategoryFromId(a) === targetCategory);
-        if (!hasSquadCategory) return false;
-      }
+      if (!isClipInPlaylist(clip, state.activePlaylistFilter)) return false;
     }
 
     // Saved filter
@@ -571,24 +584,8 @@ function renderClips() {
 function renderPlaylists() {
   if (!playlistCards) return;
 
-  const PLAYLIST_TARGETS = {
-    'pl-minis': 'minis',
-    'pl-youth': 'youth',
-    'pl-adults': 'adults'
-  };
-
   playlistCards.innerHTML = CHIEFTAINS_PLAYLISTS.map(pl => {
-    const targetCategory = PLAYLIST_TARGETS[pl.id];
-    let count = 0;
-    if (targetCategory) {
-      count = state.clips.filter(clip => {
-        if (!clip) return false;
-        const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
-        const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
-        return clipCats.includes(targetCategory) ||
-          clipAges.some(a => getAgeCategoryFromId(a) === targetCategory);
-      }).length;
-    }
+    const count = state.clips.filter(clip => isClipInPlaylist(clip, pl.id)).length;
 
     return `
       <div class="playlist-card ${state.activePlaylistFilter === pl.id ? 'border-gold' : ''}" onclick="window.filterByPlaylist('${pl.id}')">
