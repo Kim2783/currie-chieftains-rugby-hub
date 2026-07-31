@@ -1,6 +1,7 @@
 import { INITIAL_CLIPS, SKILL_CATEGORIES, RUGBY_POSITIONS, SCOTTISH_AGE_GROUPS, RUGBY_EQUIPMENT, CHIEFTAINS_PLAYLISTS, DAILY_CHALLENGES } from './data/initialData.js';
 import { isConfigured } from './firebase/config.js';
 import { subscribeToClips, addClipToCloud, upvoteClipInCloud, addCommentToCloud, seedInitialClipsIfEmpty, uploadVideoFileToCloud } from './firebase/service.js';
+import { getAgeCategoryFromId, getAgeGroupLabel, isClipInPlaylist } from './utils/helpers.js';
 
 // Helper to extract 11-character YouTube Video ID from any link pattern
 function extractYouTubeId(url) {
@@ -351,28 +352,6 @@ function renderFormAgeCheckboxes() {
   `).join('');
 }
 
-function isClipInPlaylist(clip, playlistId) {
-  if (!clip) return false;
-  const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
-  const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
-
-  if (playlistId === 'pl-minis-p13') {
-    return clipAges.some(a => a === 'p1' || a === 'p2' || a === 'p3');
-  }
-  if (playlistId === 'pl-minis-p45') {
-    return clipAges.some(a => a === 'p4' || a === 'p5');
-  }
-  if (playlistId === 'pl-minis-p67') {
-    return clipAges.some(a => a === 'p6' || a === 'p7');
-  }
-  if (playlistId === 'pl-youth') {
-    return clipCats.includes('youth') || clipAges.some(a => getAgeCategoryFromId(a) === 'youth');
-  }
-  if (playlistId === 'pl-adults') {
-    return clipCats.includes('adults') || clipAges.some(a => getAgeCategoryFromId(a) === 'adults');
-  }
-  return false;
-}
 
 function getFilteredClips() {
   return state.clips.filter(clip => {
@@ -450,18 +429,6 @@ function getFilteredClips() {
   });
 }
 
-function getAgeCategoryFromId(ageId) {
-  if (!ageId) return 'youth';
-  if (ageId.startsWith('p') || ageId === 'minis') return 'minis';
-  if (ageId.startsWith('u') || ageId === 'youth') return 'youth';
-  if (ageId.includes('adult') || ageId.includes('senior')) return 'adults';
-  return 'youth';
-}
-
-function getAgeGroupLabel(ageId) {
-  const ag = SCOTTISH_AGE_GROUPS.find(a => a.id === ageId);
-  return ag ? ag.name : (ageId ? ageId.toUpperCase() : 'ALL');
-}
 
 function renderClips() {
   const filtered = getFilteredClips();
