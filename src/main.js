@@ -499,9 +499,17 @@ function renderClips() {
             <div class="card-footer">
               <span style="font-weight: 600; font-size: 0.8rem;">👤 ${clip.author}</span>
               
-              <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <div style="display: flex; gap: 0.4rem; align-items: center;">
                 <button class="resp-btn" onclick="event.stopPropagation(); window.upvoteClip('${clip.id}')" title="Upvote this skill clip">
-                  🏉 ${clip.upvotes || 0}
+                  👍 ${clip.upvotes || 0}
+                </button>
+
+                <button class="btn btn-ghost" style="padding: 0.2rem 0.4rem; font-size: 0.9rem; color: #25D366;" onclick="event.stopPropagation(); window.shareClipToWhatsApp('${clip.id}')" title="Share drill to WhatsApp group">
+                  📲
+                </button>
+
+                <button class="btn btn-ghost" style="padding: 0.2rem 0.4rem; font-size: 0.9rem;" onclick="event.stopPropagation(); window.copyClipLink('${clip.id}')" title="Copy drill video link">
+                  🔗
                 </button>
 
                 <button class="btn btn-ghost" style="padding: 0.2rem 0.4rem; font-size: 1rem;" onclick="event.stopPropagation(); window.toggleSaveClip('${clip.id}')" title="${isSaved ? 'Remove from Training Bag' : 'Save to Training Bag'}">
@@ -674,6 +682,28 @@ window.upvoteClip = async function(clipId) {
     if (state.currentModalClipId === clipId) {
       if (modalUpvotesCount) modalUpvotesCount.textContent = clip.upvotes;
     }
+  }
+};
+
+window.shareClipToWhatsApp = function(clipId) {
+  const clip = state.clips.find(c => c.id === clipId);
+  if (!clip) return;
+  const text = `🏉 *Currie Chieftains RFC Skill Vault*\n\n*${clip.title}*\n${clip.url}\n\nShared for Malleny Park training!`;
+  window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`, '_blank');
+};
+
+window.copyClipLink = function(clipId) {
+  const clip = state.clips.find(c => c.id === clipId);
+  if (!clip) return;
+  const link = clip.url || window.location.href;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(link).then(() => {
+      alert(`✅ Video link copied to clipboard:\n${link}`);
+    }).catch(() => {
+      prompt("Copy video link below:", link);
+    });
+  } else {
+    prompt("Copy video link below:", link);
   }
 };
 
@@ -886,6 +916,21 @@ function setupEventListeners() {
       if (state.currentModalClipId) {
         window.toggleSaveClip(state.currentModalClipId);
       }
+    });
+  }
+
+  const modalShareWaBtn = document.getElementById('modalShareWaBtn');
+  const modalCopyLinkBtn = document.getElementById('modalCopyLinkBtn');
+
+  if (modalShareWaBtn) {
+    modalShareWaBtn.addEventListener('click', () => {
+      if (state.currentModalClipId) window.shareClipToWhatsApp(state.currentModalClipId);
+    });
+  }
+
+  if (modalCopyLinkBtn) {
+    modalCopyLinkBtn.addEventListener('click', () => {
+      if (state.currentModalClipId) window.copyClipLink(state.currentModalClipId);
     });
   }
 
