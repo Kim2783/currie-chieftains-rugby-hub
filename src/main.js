@@ -283,12 +283,18 @@ function saveClipsToStorage() {
 
 function saveSavedIdsToStorage() {
   localStorage.setItem(STORAGE_KEY_SAVED, JSON.stringify(state.savedClipIds));
-  if (savedCount) savedCount.textContent = state.savedClipIds.length;
+  const count = state.savedClipIds.length;
+  if (savedCount) savedCount.textContent = count;
+  const mobileSavedCount = document.getElementById('mobileSavedCount');
+  if (mobileSavedCount) mobileSavedCount.textContent = count;
 }
 
 function updateStats() {
   if (statTotalClips) statTotalClips.textContent = state.clips.length;
-  if (savedCount) savedCount.textContent = state.savedClipIds.length;
+  const count = state.savedClipIds.length;
+  if (savedCount) savedCount.textContent = count;
+  const mobileSavedCount = document.getElementById('mobileSavedCount');
+  if (mobileSavedCount) mobileSavedCount.textContent = count;
 }
 
 function renderAgeGroupOptions() {
@@ -760,6 +766,17 @@ window.resetAllFilters = function() {
   const allPill = document.querySelector('.pill-filter[data-squad="all"]');
   if (allPill) allPill.classList.add('active');
 
+  const savedBtns = [
+    document.getElementById('openSavedBtn'),
+    document.getElementById('mobileSavedBtn')
+  ];
+  savedBtns.forEach(btn => {
+    if (btn) {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    }
+  });
+
   renderCategoryTabs();
   renderPlaylists();
   renderClips();
@@ -867,18 +884,60 @@ function setupEventListeners() {
     resetFiltersBtn.addEventListener('click', window.resetAllFilters);
   }
 
-  if (openSavedBtn) {
-    openSavedBtn.addEventListener('click', () => {
-      state.showOnlySaved = !state.showOnlySaved;
-      state.activePlaylistFilter = null;
+  // Mobile Header Hamburger Toggle
+  const hamburgerMenuBtn = document.getElementById('hamburgerMenuBtn');
+  const mobileNav = document.getElementById('mobileNav');
+  if (hamburgerMenuBtn && mobileNav) {
+    hamburgerMenuBtn.addEventListener('click', () => {
+      hamburgerMenuBtn.classList.toggle('active');
+      mobileNav.classList.toggle('active');
+    });
+  }
+
+  // Mobile Filters Toggle
+  const toggleFiltersBtn = document.getElementById('toggleFiltersBtn');
+  const filtersGroupContainer = document.getElementById('filtersGroupContainer');
+  if (toggleFiltersBtn && filtersGroupContainer) {
+    toggleFiltersBtn.addEventListener('click', () => {
+      toggleFiltersBtn.classList.toggle('active');
+      filtersGroupContainer.classList.toggle('active');
+    });
+  }
+
+  // Shared function to toggle saved bag filter
+  function toggleSavedFilter() {
+    state.showOnlySaved = !state.showOnlySaved;
+    state.activePlaylistFilter = null;
+    
+    const savedBtns = [
+      document.getElementById('openSavedBtn'),
+      document.getElementById('mobileSavedBtn')
+    ];
+    
+    savedBtns.forEach(btn => {
+      if (!btn) return;
       if (state.showOnlySaved) {
-        openSavedBtn.classList.add('btn-primary');
-        openSavedBtn.classList.remove('btn-secondary');
+        btn.classList.add('btn-primary');
+        btn.classList.remove('btn-secondary');
       } else {
-        openSavedBtn.classList.remove('btn-primary');
-        openSavedBtn.classList.add('btn-secondary');
+        btn.classList.remove('btn-primary');
+        btn.classList.add('btn-secondary');
       }
-      renderClips();
+    });
+    
+    renderClips();
+  }
+
+  if (openSavedBtn) {
+    openSavedBtn.addEventListener('click', toggleSavedFilter);
+  }
+
+  const mobileSavedBtn = document.getElementById('mobileSavedBtn');
+  if (mobileSavedBtn) {
+    mobileSavedBtn.addEventListener('click', () => {
+      toggleSavedFilter();
+      if (hamburgerMenuBtn) hamburgerMenuBtn.classList.remove('active');
+      if (mobileNav) mobileNav.classList.remove('active');
     });
   }
 
@@ -886,6 +945,25 @@ function setupEventListeners() {
     openPlaylistsBtn.addEventListener('click', () => {
       const pw = document.getElementById('playlistsWidget');
       if (pw) pw.scrollIntoView({ behavior: 'smooth' });
+    });
+  }
+
+  const mobilePlaylistsBtn = document.getElementById('mobilePlaylistsBtn');
+  if (mobilePlaylistsBtn) {
+    mobilePlaylistsBtn.addEventListener('click', () => {
+      const pw = document.getElementById('playlistsWidget');
+      if (pw) pw.scrollIntoView({ behavior: 'smooth' });
+      if (hamburgerMenuBtn) hamburgerMenuBtn.classList.remove('active');
+      if (mobileNav) mobileNav.classList.remove('active');
+    });
+  }
+
+  const mobileAddModalBtn = document.getElementById('mobileAddModalBtn');
+  if (mobileAddModalBtn && addModal) {
+    mobileAddModalBtn.addEventListener('click', () => {
+      addModal.classList.add('active');
+      if (hamburgerMenuBtn) hamburgerMenuBtn.classList.remove('active');
+      if (mobileNav) mobileNav.classList.remove('active');
     });
   }
 

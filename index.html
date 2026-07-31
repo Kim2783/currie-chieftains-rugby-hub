@@ -26,6 +26,13 @@
         </div>
       </a>
 
+      <!-- Hamburger Menu Toggle Button -->
+      <button class="hamburger-menu" id="hamburgerMenuBtn" aria-label="Toggle Menu">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+
       <div class="header-actions">
         <a href="https://curriechieftains.org/" target="_blank" rel="noopener noreferrer" class="btn btn-secondary" style="text-decoration: none;" title="Currie Chieftains Official Webpage & Fixtures">
           <span>🏟️</span> Club Fixtures ↗
@@ -43,6 +50,25 @@
           <span>+</span> Share Clip
         </button>
       </div>
+    </div>
+
+    <!-- Mobile Dropdown Navigation -->
+    <div class="mobile-nav" id="mobileNav">
+      <a href="https://curriechieftains.org/" target="_blank" rel="noopener noreferrer" class="mobile-nav-link">
+        <span>🏟️</span> Club Fixtures ↗
+      </a>
+      <a href="https://scrums.scottishrugby.org/" target="_blank" rel="noopener noreferrer" class="mobile-nav-link">
+        <span>🏉</span> SCRUMS Portal ↗
+      </a>
+      <button class="mobile-nav-btn" id="mobilePlaylistsBtn">
+        <span>📚</span> Playlists
+      </button>
+      <button class="mobile-nav-btn" id="mobileSavedBtn">
+        <span>⭐</span> My Bag (<span id="mobileSavedCount">0</span>)
+      </button>
+      <button class="btn btn-primary mobile-nav-share-btn" id="mobileAddModalBtn">
+        <span>+</span> Share Clip
+      </button>
     </div>
   </header>
 
@@ -74,6 +100,12 @@
           <input type="text" id="searchInput" class="search-input" placeholder="Search skills, age groups (e.g. 'P4', 'P5', 'U14', '1st XV', 'scrum')..." autocomplete="off">
         </div>
 
+        <button class="btn btn-secondary toggle-filters-btn" id="toggleFiltersBtn" title="Refine Filters">
+          <span>⚙️</span> Filters <span class="arrow-icon">▼</span>
+        </button>
+      </div>
+
+      <div class="filters-group-container" id="filtersGroupContainer">
         <select id="ageGroupSelect" class="select-box">
           <option value="all">🏴󠁧󠁢󠁳󠁣󠁴󠁿 All Specific Age Levels</option>
           <!-- Options populated dynamically -->
