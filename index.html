@@ -78,6 +78,11 @@
           <!-- Options populated dynamically -->
         </select>
 
+        <select id="equipmentSelect" class="select-box">
+          <option value="all">🏋️ All Equipment Types</option>
+          <!-- Options populated dynamically -->
+        </select>
+
         <select id="platformSelect" class="select-box">
           <option value="all">🎬 All Platforms</option>
           <option value="youtube">YouTube Videos</option>
@@ -316,9 +321,16 @@
           </div>
 
           <div class="form-group">
-            <label for="clipTagsInput">Custom Tags (comma separated)</label>
-            <input type="text" id="clipTagsInput" class="form-control" placeholder="#p4, #p5, #spiral-pass, #malleny">
+            <label for="clipEquipmentInput">Required Equipment</label>
+            <select id="clipEquipmentInput" class="form-control">
+              <!-- Options populated dynamically -->
+            </select>
           </div>
+        </div>
+        
+        <div class="form-group">
+          <label for="clipTagsInput">Custom Tags (comma separated)</label>
+          <input type="text" id="clipTagsInput" class="form-control" placeholder="#p4, #p5, #spiral-pass, #malleny">
         </div>
 
         <div class="form-group">

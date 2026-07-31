@@ -1,4 +1,4 @@
-import { INITIAL_CLIPS, SKILL_CATEGORIES, RUGBY_POSITIONS, SCOTTISH_AGE_GROUPS, CHIEFTAINS_PLAYLISTS, DAILY_CHALLENGES } from './data/initialData.js';
+import { INITIAL_CLIPS, SKILL_CATEGORIES, RUGBY_POSITIONS, SCOTTISH_AGE_GROUPS, RUGBY_EQUIPMENT, CHIEFTAINS_PLAYLISTS, DAILY_CHALLENGES } from './data/initialData.js';
 import { isConfigured } from './firebase/config.js';
 import { subscribeToClips, addClipToCloud, upvoteClipInCloud, addCommentToCloud, seedInitialClipsIfEmpty, uploadVideoFileToCloud } from './firebase/service.js';
 
@@ -18,6 +18,7 @@ let state = {
   activePosition: 'all',
   activeAgeGroup: 'all',
   activeSquadSection: 'all',
+  activeEquipment: 'all',
   activePlatform: 'all',
   sortBy: 'newest',
   searchQuery: '',
@@ -39,13 +40,13 @@ const clipsGrid = document.getElementById('clipsGrid');
 const categoryTabs = document.getElementById('categoryTabs');
 const ageGroupSelect = document.getElementById('ageGroupSelect');
 const positionSelect = document.getElementById('positionSelect');
+const equipmentSelect = document.getElementById('equipmentSelect');
 const platformSelect = document.getElementById('platformSelect');
 const sortSelect = document.getElementById('sortSelect');
 const searchInput = document.getElementById('searchInput');
 const resetFiltersBtn = document.getElementById('resetFiltersBtn');
 const clipsCountText = document.getElementById('clipsCountText');
 const statTotalClips = document.getElementById('statTotalClips');
-const statTotalUpvotes = document.getElementById('statTotalUpvotes');
 const savedCount = document.getElementById('savedCount');
 
 // Modal Elements
@@ -70,6 +71,7 @@ const closeAddModal = document.getElementById('closeAddModal');
 const cancelAddBtn = document.getElementById('cancelAddBtn');
 const addClipForm = document.getElementById('addClipForm');
 const clipAgeCheckboxes = document.getElementById('clipAgeCheckboxes');
+const clipEquipmentInput = document.getElementById('clipEquipmentInput');
 const tabPasteUrl = document.getElementById('tabPasteUrl');
 const tabUploadFile = document.getElementById('tabUploadFile');
 const urlInputContainer = document.getElementById('urlInputContainer');
@@ -118,6 +120,8 @@ function sanitizeClip(clip) {
   const ageCategories = Array.isArray(clip.ageCategories) && clip.ageCategories.length > 0 ? clip.ageCategories :
                         [getAgeCategoryFromId(ageGroups[0])];
   const positions = Array.isArray(clip.positions) && clip.positions.length > 0 ? clip.positions : ['all'];
+  const equipment = Array.isArray(clip.equipment) && clip.equipment.length > 0 ? clip.equipment :
+                    clip.equipment ? [clip.equipment] : ['none'];
   const tags = Array.isArray(clip.tags) ? clip.tags : ageGroups.map(ag => `#${ag}`);
   const coachingPoints = Array.isArray(clip.coachingPoints) ? clip.coachingPoints : [];
   const comments = Array.isArray(clip.comments) ? clip.comments : [];
@@ -136,6 +140,7 @@ function sanitizeClip(clip) {
     ageGroups,
     ageCategories,
     positions,
+    equipment,
     tags,
     author: clip.author || 'Currie Contributor',
     authorRole: clip.authorRole || 'Coach / Player',
@@ -152,6 +157,7 @@ async function init() {
   loadSavedIds();
   renderAgeGroupOptions();
   renderPositionOptions();
+  renderEquipmentOptions();
   renderCategoryTabs();
   renderFormAgeCheckboxes();
   renderPlaylists();
@@ -167,10 +173,8 @@ async function init() {
     await seedInitialClipsIfEmpty(INITIAL_CLIPS);
     
     subscribeToClips((cloudClips) => {
-      // Sanitize all incoming cloud documents
       const sanitizedCloud = (cloudClips || []).map(sanitizeClip).filter(Boolean);
 
-      // Auto-sync clips stored locally on this device to Cloud Firestore
       const localClips = getStoredLocalClips().map(sanitizeClip).filter(Boolean);
       localClips.forEach(lc => {
         if (!sanitizedCloud.some(cc => cc.id === lc.id)) {
@@ -179,7 +183,6 @@ async function init() {
         }
       });
 
-      // Combine Cloud clips with local clips using Map indexed by unique document ID
       const combinedMap = new Map();
       sanitizedCloud.forEach(c => combinedMap.set(c.id, c));
       localClips.forEach(lc => {
@@ -281,8 +284,6 @@ function saveSavedIdsToStorage() {
 
 function updateStats() {
   if (statTotalClips) statTotalClips.textContent = state.clips.length;
-  const totalUpvotes = state.clips.reduce((acc, c) => acc + (c.upvotes || 0), 0);
-  if (statTotalUpvotes) statTotalUpvotes.textContent = totalUpvotes;
   if (savedCount) savedCount.textContent = state.savedClipIds.length;
 }
 
@@ -297,6 +298,25 @@ function renderPositionOptions() {
   positionSelect.innerHTML = RUGBY_POSITIONS.map(pos => 
     `<option value="${pos.id}">${pos.name}</option>`
   ).join('');
+}
+
+function renderEquipmentOptions() {
+  if (equipmentSelect) {
+    equipmentSelect.innerHTML = RUGBY_EQUIPMENT.map(eq => 
+      `<option value="${eq.id}">${eq.name}</option>`
+    ).join('');
+  }
+
+  if (clipEquipmentInput) {
+    clipEquipmentInput.innerHTML = RUGBY_EQUIPMENT.filter(eq => eq.id !== 'all').map(eq => 
+      `<option value="${eq.id}">${eq.name}</option>`
+    ).join('');
+  }
+}
+
+function getEquipmentLabel(equipId) {
+  const eq = RUGBY_EQUIPMENT.find(e => e.id === equipId);
+  return eq ? eq.name : '🏉 No Equipment';
 }
 
 function renderCategoryTabs() {
@@ -324,6 +344,7 @@ function getFilteredClips() {
     const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
     const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
     const clipPositions = clip.positions || ['all'];
+    const clipEquip = clip.equipment || ['none'];
     const clipTags = clip.tags || [];
 
     // Search query
@@ -334,7 +355,8 @@ function getFilteredClips() {
       const matchAuthor = (clip.author || '').toLowerCase().includes(q);
       const matchTags = clipTags.some(t => t.toLowerCase().includes(q));
       const matchAge = clipAges.some(a => a.toLowerCase().includes(q) || getAgeGroupLabel(a).toLowerCase().includes(q));
-      if (!matchTitle && !matchDesc && !matchAuthor && !matchTags && !matchAge) return false;
+      const matchEquip = clipEquip.some(e => getEquipmentLabel(e).toLowerCase().includes(q));
+      if (!matchTitle && !matchDesc && !matchAuthor && !matchTags && !matchAge && !matchEquip) return false;
     }
 
     // Playlist filter
@@ -368,6 +390,11 @@ function getFilteredClips() {
     // Position filter (supports "none" for no position tagged)
     if (state.activePosition !== 'all') {
       if (!clipPositions.includes(state.activePosition)) return false;
+    }
+
+    // Equipment Filter
+    if (state.activeEquipment !== 'all') {
+      if (!clipEquip.includes(state.activeEquipment)) return false;
     }
 
     // Platform filter
@@ -412,7 +439,7 @@ function renderClips() {
           <div style="font-size: 3rem; margin-bottom: 1rem;">🏉</div>
           <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Rugby Clips Found</h3>
           <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
-            No skill videos match your active filter selection. Try adjusting your search term or squad level.
+            No skill videos match your active filter selection. Try adjusting your search term, equipment, or squad level.
           </p>
           <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset All Filters</button>
         </div>
@@ -429,12 +456,15 @@ function renderClips() {
                             clip.platform === 'instagram' ? 'Instagram 📸' : 'Uploaded Video 📱';
       const platformClass = `platform-${clip.platform}`;
       const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+      const clipEquip = clip.equipment || ['none'];
       const clipTags = clip.tags || [];
 
       const ageBadgesHtml = clipAges.slice(0, 3).map(agId => {
         const ageCat = getAgeCategoryFromId(agId);
         return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
       }).join(' ');
+
+      const equipTagHtml = `<span class="tag-chip" style="background: rgba(59, 130, 246, 0.12); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.3);">${getEquipmentLabel(clipEquip[0])}</span>`;
 
       return `
         <article class="clip-card" data-id="${clip.id}">
@@ -458,7 +488,8 @@ function renderClips() {
             <h4 class="card-title" onclick="window.openClipModal('${clip.id}')" style="cursor: pointer;">${clip.title}</h4>
 
             <div class="card-tags">
-              ${clipTags.slice(0, 3).map(tag => `<span class="tag-chip">${tag}</span>`).join('')}
+              ${equipTagHtml}
+              ${clipTags.slice(0, 2).map(tag => `<span class="tag-chip">${tag}</span>`).join('')}
             </div>
 
             <div class="card-footer">
@@ -505,11 +536,15 @@ window.openClipModal = function(clipId) {
   if (modalClipTitle) modalClipTitle.textContent = clip.title || 'Rugby Skill Video';
   
   const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+  const clipEquip = clip.equipment || ['none'];
+
   if (modalAgeBadgesWrapper) {
     modalAgeBadgesWrapper.innerHTML = clipAges.map(agId => {
       const ageCat = getAgeCategoryFromId(agId);
       return `<span class="badge-level badge-age-${ageCat}">${getAgeGroupLabel(agId)}</span>`;
-    }).join(' ') + `<span class="badge-level level-${clip.level || 'intermediate'}">${(clip.level || 'INTERMEDIATE').toUpperCase()}</span>`;
+    }).join(' ') + 
+    `<span class="tag-chip" style="background: rgba(59, 130, 246, 0.15); color: #60a5fa; border: 1px solid rgba(59, 130, 246, 0.4); font-weight: 700; font-size: 0.8rem; padding: 0.2rem 0.5rem;">${getEquipmentLabel(clipEquip[0])}</span>` +
+    `<span class="badge-level level-${clip.level || 'intermediate'}">${(clip.level || 'INTERMEDIATE').toUpperCase()}</span>`;
   }
 
   const modalAuthorRole = document.getElementById('modalAuthorRole');
@@ -673,6 +708,7 @@ window.resetAllFilters = function() {
   state.activePosition = 'all';
   state.activeAgeGroup = 'all';
   state.activeSquadSection = 'all';
+  state.activeEquipment = 'all';
   state.activePlatform = 'all';
   state.searchQuery = '';
   state.sortBy = 'newest';
@@ -682,6 +718,7 @@ window.resetAllFilters = function() {
   if (searchInput) searchInput.value = '';
   if (ageGroupSelect) ageGroupSelect.value = 'all';
   if (positionSelect) positionSelect.value = 'all';
+  if (equipmentSelect) equipmentSelect.value = 'all';
   if (platformSelect) platformSelect.value = 'all';
   if (sortSelect) sortSelect.value = 'newest';
   
@@ -767,6 +804,13 @@ function setupEventListeners() {
   if (positionSelect) {
     positionSelect.addEventListener('change', (e) => {
       state.activePosition = e.target.value;
+      renderClips();
+    });
+  }
+
+  if (equipmentSelect) {
+    equipmentSelect.addEventListener('change', (e) => {
+      state.activeEquipment = e.target.value;
       renderClips();
     });
   }
@@ -895,6 +939,7 @@ function setupEventListeners() {
       const category = document.getElementById('clipCategoryInput').value;
       const author = document.getElementById('clipAuthorInput').value.trim();
       const position = document.getElementById('clipPositionInput').value;
+      const equipment = clipEquipmentInput ? clipEquipmentInput.value : 'none';
       const rawTags = document.getElementById('clipTagsInput').value.trim();
       const description = document.getElementById('clipDescInput').value.trim();
       const rawPoints = document.getElementById('clipPointsInput').value.trim();
@@ -969,6 +1014,7 @@ function setupEventListeners() {
         ageGroups,
         ageCategories,
         positions: [position],
+        equipment: [equipment],
         tags: tagsArr,
         author,
         authorRole: 'Coach / Player',
@@ -984,6 +1030,7 @@ function setupEventListeners() {
       state.activePosition = 'all';
       state.activeAgeGroup = 'all';
       state.activeSquadSection = 'all';
+      state.activeEquipment = 'all';
       state.activePlatform = 'all';
       state.searchQuery = '';
       state.activePlaylistFilter = null;
@@ -992,6 +1039,7 @@ function setupEventListeners() {
       if (searchInput) searchInput.value = '';
       if (ageGroupSelect) ageGroupSelect.value = 'all';
       if (positionSelect) positionSelect.value = 'all';
+      if (equipmentSelect) equipmentSelect.value = 'all';
       if (platformSelect) platformSelect.value = 'all';
       if (sortSelect) sortSelect.value = 'newest';
 
