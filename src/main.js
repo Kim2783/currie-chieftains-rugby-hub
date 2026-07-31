@@ -202,6 +202,7 @@ async function init() {
       state.clips = Array.from(combinedMap.values());
       saveClipsToStorage();
       updateStats();
+      renderPlaylists();
       renderClips();
 
       if (state.currentModalClipId) {
@@ -215,12 +216,14 @@ async function init() {
       console.warn("Firestore subscription fallback:", err);
       loadLocalStorageClips();
       updateStats();
+      renderPlaylists();
       renderClips();
     });
   } else {
     updateCloudStatusBadge(false);
     loadLocalStorageClips();
     updateStats();
+    renderPlaylists();
     renderClips();
   }
 }
@@ -369,10 +372,19 @@ function getFilteredClips() {
       if (!matchTitle && !matchDesc && !matchAuthor && !matchTags && !matchAge && !matchEquip) return false;
     }
 
-    // Playlist filter
+    // Playlist filter (dynamically mapped by squad sections)
     if (state.activePlaylistFilter) {
-      const playlist = CHIEFTAINS_PLAYLISTS.find(p => p.id === state.activePlaylistFilter);
-      if (playlist && !playlist.clipIds.includes(clip.id)) return false;
+      const PLAYLIST_TARGETS = {
+        'pl-minis': 'minis',
+        'pl-youth': 'youth',
+        'pl-adults': 'adults'
+      };
+      const targetCategory = PLAYLIST_TARGETS[state.activePlaylistFilter];
+      if (targetCategory) {
+        const hasSquadCategory = clipCats.includes(targetCategory) ||
+          clipAges.some(a => getAgeCategoryFromId(a) === targetCategory);
+        if (!hasSquadCategory) return false;
+      }
     }
 
     // Saved filter
@@ -444,16 +456,42 @@ function renderClips() {
 
   if (filtered.length === 0) {
     if (clipsGrid) {
-      clipsGrid.innerHTML = `
-        <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
-          <div style="font-size: 3rem; margin-bottom: 1rem;">🏉</div>
-          <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Rugby Clips Found</h3>
-          <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
-            No skill videos match your active filter selection. Try adjusting your search term, equipment, or squad level.
-          </p>
-          <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset All Filters</button>
-        </div>
-      `;
+      if (state.showOnlySaved) {
+        clipsGrid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">⭐</div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">Your Training Bag is Empty</h3>
+            <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
+              Save skill videos or coaching drills to your bag by clicking the star icon (☆) on any clip card for quick access at Malleny Park!
+            </p>
+            <button class="btn btn-primary" onclick="window.resetAllFilters()">Show All Clips</button>
+          </div>
+        `;
+      } else if (state.activePlaylistFilter) {
+        const playlist = CHIEFTAINS_PLAYLISTS.find(p => p.id === state.activePlaylistFilter);
+        const plTitle = playlist ? playlist.title : 'this playlist';
+        clipsGrid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">📚</div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Clips in Playlist</h3>
+            <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
+              There are currently no clips matching "${plTitle}". Share a new rugby clip and tag it with the correct squad level to populate this playlist!
+            </p>
+            <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset Filters</button>
+          </div>
+        `;
+      } else {
+        clipsGrid.innerHTML = `
+          <div style="grid-column: 1/-1; text-align: center; padding: 4rem 1rem; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px dashed var(--border-color);">
+            <div style="font-size: 3rem; margin-bottom: 1rem;">🏉</div>
+            <h3 style="font-size: 1.3rem; margin-bottom: 0.5rem; color: #ffffff;">No Rugby Clips Found</h3>
+            <p style="color: var(--text-muted); max-width: 450px; margin: 0 auto 1.5rem auto;">
+              No skill videos match your active filter selection. Try adjusting your search term, equipment, or squad level.
+            </p>
+            <button class="btn btn-primary" onclick="window.resetAllFilters()">Reset All Filters</button>
+          </div>
+        `;
+      }
     }
     return;
   }
@@ -532,13 +570,34 @@ function renderClips() {
 
 function renderPlaylists() {
   if (!playlistCards) return;
-  playlistCards.innerHTML = CHIEFTAINS_PLAYLISTS.map(pl => `
-    <div class="playlist-card ${state.activePlaylistFilter === pl.id ? 'border-gold' : ''}" onclick="window.filterByPlaylist('${pl.id}')">
-      <div class="playlist-title">${pl.title}</div>
-      <div class="playlist-desc">${pl.description}</div>
-      <div class="playlist-meta">📁 ${pl.clipCount} Skill Clips • Click to Filter</div>
-    </div>
-  `).join('');
+
+  const PLAYLIST_TARGETS = {
+    'pl-minis': 'minis',
+    'pl-youth': 'youth',
+    'pl-adults': 'adults'
+  };
+
+  playlistCards.innerHTML = CHIEFTAINS_PLAYLISTS.map(pl => {
+    const targetCategory = PLAYLIST_TARGETS[pl.id];
+    let count = 0;
+    if (targetCategory) {
+      count = state.clips.filter(clip => {
+        if (!clip) return false;
+        const clipAges = clip.ageGroups || (clip.ageGroup ? [clip.ageGroup] : ['u14']);
+        const clipCats = clip.ageCategories || [getAgeCategoryFromId(clipAges[0])];
+        return clipCats.includes(targetCategory) ||
+          clipAges.some(a => getAgeCategoryFromId(a) === targetCategory);
+      }).length;
+    }
+
+    return `
+      <div class="playlist-card ${state.activePlaylistFilter === pl.id ? 'border-gold' : ''}" onclick="window.filterByPlaylist('${pl.id}')">
+        <div class="playlist-title">${pl.title}</div>
+        <div class="playlist-desc">${pl.description}</div>
+        <div class="playlist-meta">📁 ${count} Skill Clips • Click to Filter</div>
+      </div>
+    `;
+  }).join('');
 }
 
 function getCategoryName(catId) {
@@ -737,6 +796,19 @@ window.filterByPlaylist = function(playlistId) {
     state.activePlaylistFilter = playlistId;
   }
   state.showOnlySaved = false;
+  
+  // Sync the Saved button states
+  const savedBtns = [
+    document.getElementById('openSavedBtn'),
+    document.getElementById('mobileSavedBtn')
+  ];
+  savedBtns.forEach(btn => {
+    if (btn) {
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-secondary');
+    }
+  });
+
   renderPlaylists();
   renderClips();
   const tb = document.getElementById('toolbarSection');
@@ -925,6 +997,7 @@ function setupEventListeners() {
       }
     });
     
+    renderPlaylists();
     renderClips();
   }
 
@@ -1179,6 +1252,7 @@ function setupEventListeners() {
       state.clips.unshift(newClip);
       saveClipsToStorage();
       updateStats();
+      renderPlaylists();
       renderClips();
 
       if (isConfigured) {
